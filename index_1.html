@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Suivi Suunto</title>
+<style>
+  :root {
+    --bg: #12161a;
+    --panel: #1a2027;
+    --panel-line: #262e37;
+    --ink: #e7ecef;
+    --muted: #7c8a96;
+    --signal: #ff5a2b;   /* orange trace GPS */
+    --route: #49c6b5;    /* bleu-vert altitude */
+    --danger: #e5484d;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(255,90,43,0.07), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(73,198,181,0.06), transparent 45%);
+  }
+
+  /* Ligne de contour topographique décorative, fine et discrète */
+  .contour {
+    height: 2px;
+    width: 100%;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--panel-line) 0 24px,
+      transparent 24px 32px
+    );
+    opacity: 0.6;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px clamp(16px, 4vw, 48px);
+  }
+
+  .brand {
+    font-family: var(--mono);
+    letter-spacing: 0.14em;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .brand strong { color: var(--ink); }
+
+  #logout-btn {
+    background: transparent;
+    border: 1px solid var(--panel-line);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: none;
+  }
+  #logout-btn:hover { border-color: var(--signal); color: var(--ink); }
+
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: clamp(24px, 5vw, 64px) clamp(16px, 4vw, 48px) 80px;
+  }
+
+  /* --- Écran de connexion --- */
+  #login-view {
+    max-width: 380px;
+    margin: 8vh auto 0;
+  }
+  #login-view h1 {
+    font-size: 26px;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  #login-view p.sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 32px;
+  }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    color: var(--ink);
+    padding: 11px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: var(--sans);
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--signal);
+  }
+
+  button.primary {
+    width: 100%;
+    background: var(--signal);
+    color: #14161a;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { opacity: 0.5; cursor: default; }
+
+  #login-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 14px;
+    display: none;
+  }
+
+  /* --- Tableau de bord --- */
+  #dashboard-view { display: none; }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 40px 0 14px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+
+  .workout-list { display: flex; flex-direction: column; gap: 10px; }
+  .workout-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--panel-line);
+  }
+  .workout-row:last-child { border-bottom: none; }
+  .workout-activity { font-weight: 600; font-size: 14px; }
+  .workout-date { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+  .workout-stats {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--route);
+    text-align: right;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .stat-tile {
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .stat-tile .value {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--ink);
+  }
+  .stat-tile .label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .empty, .loading {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 14px 0;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">SUIVI · <strong>SUUNTO</strong></div>
+    <button id="logout-btn">Déconnexion</button>
+  </header>
+  <div class="contour"></div>
+
+  <main>
+
+    <!-- Écran de connexion -->
+    <section id="login-view">
+      <h1>Connexion</h1>
+      <p class="sub">Identifiants de ton compte Suunto — ils ne quittent jamais ton navigateur autrement que vers ton propre serveur.</p>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="password">Mot de passe</label>
+          <input id="password" type="password" autocomplete="current-password" required />
+        </div>
+        <button class="primary" type="submit" id="login-submit">Se connecter</button>
+        <p id="login-error"></p>
+      </form>
+    </section>
+
+    <!-- Tableau de bord -->
+    <section id="dashboard-view">
+
+      <div class="section-label">Bien-être</div>
+      <div class="stat-grid" id="wellness-tiles">
+        <div class="loading">Chargement…</div>
+      </div>
+
+      <div class="section-label">Dernières séances</div>
+      <div class="card">
+        <div class="workout-list" id="workout-list">
+          <div class="loading">Chargement…</div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+<script>
+  // Adapte cette URL si ton backend tourne ailleurs.
+  const API_BASE = "http://localhost:3000";
+
+  const loginView = document.getElementById("login-view");
+  const dashboardView = document.getElementById("dashboard-view");
+  const loginForm = document.getElementById("login-form");
+  const loginError = document.getElementById("login-error");
+  const loginSubmit = document.getElementById("login-submit");
+  const logoutBtn = document.getElementById("logout-btn");
+  const workoutList = document.getElementById("workout-list");
+  const wellnessTiles = document.getElementById("wellness-tiles");
+
+  async function api(path, options = {}) {
+    const res = await fetch(API_BASE + path, {
+      credentials: "include", // indispensable : envoie le cookie de session
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Erreur ${res.status}`);
+    }
+    return res.json();
+  }
+
+  function showDashboard() {
+    loginView.style.display = "none";
+    dashboardView.style.display = "block";
+    logoutBtn.style.display = "inline-block";
+    loadWorkouts();
+    loadWellness();
+  }
+
+  function showLogin() {
+    loginView.style.display = "block";
+    dashboardView.style.display = "none";
+    logoutBtn.style.display = "none";
+  }
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    loginError.style.display = "none";
+    loginSubmit.disabled = true;
+    loginSubmit.textContent = "Connexion…";
+
+    try {
+      await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        }),
+      });
+      showDashboard();
+    } catch (err) {
+      loginError.textContent = err.message;
+      loginError.style.display = "block";
+    } finally {
+      loginSubmit.disabled = false;
+      loginSubmit.textContent = "Se connecter";
+    }
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await api("/api/logout", { method: "POST" }).catch(() => {});
+    showLogin();
+  });
+
+  function formatDuration(ms) {
+    const totalMin = Math.round(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
+  }
+
+  function formatDistance(meters) {
+    if (!meters) return "—";
+    return (meters / 1000).toFixed(1) + " km";
+  }
+
+  async function loadWorkouts() {
+    try {
+      const workouts = await api("/api/workouts?limit=8");
+      if (!workouts.length) {
+        workoutList.innerHTML = '<div class="empty">Aucune séance trouvée.</div>';
+        return;
+      }
+      workoutList.innerHTML = workouts
+        .map((w) => `
+          <div class="workout-row">
+            <div>
+              <div class="workout-activity">${w.activityName || w.activityId || "Séance"}</div>
+              <div class="workout-date">${new Date(w.startTime).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</div>
+            </div>
+            <div class="workout-stats">
+              ${formatDistance(w.totalDistance)} · ${formatDuration(w.totalTime * 1000 || 0)}
+            </div>
+          </div>
+        `)
+        .join("");
+    } catch (err) {
+      workoutList.innerHTML = `<div class="empty">${err.message}</div>`;
+    }
+  }
+
+  async function loadWellness() {
+    try {
+      const [sleep, recovery] = await Promise.all([
+        api("/api/wellness/sleep").catch(() => []),
+        api("/api/wellness/recovery").catch(() => []),
+      ]);
+
+      const lastSleep = sleep?.[sleep.length - 1];
+      const lastRecovery = recovery?.[recovery.length - 1];
+
+      wellnessTiles.innerHTML = `
+        <div class="stat-tile">
+          <div class="value">${lastSleep ? formatDuration(lastSleep.duration || 0) : "—"}</div>
+          <div class="label">Sommeil (dernière nuit)</div>
+        </div>
+        <div class="stat-tile">
+          <div class="value">${lastRecovery?.recoveryPercent != null ? lastRecovery.recoveryPercent + "%" : "—"}</div>
+          <div class="label">Récupération</div>
+        </div>
+      `;
+    } catch (err) {
+      wellnessTiles.innerHTML = `<div class="empty">${err.message}</div>`;
+    }
+  }
+
+  // Au chargement : pas de vérification de session automatique ici
+  // (l'API ne fournit pas de "/me"). On part sur l'écran de connexion.
+  showLogin();
+</script>
+
+</body>
+</html>
