@@ -1,12 +1,33 @@
-# Backend de suivi Suunto (exemple)
+# Suivi Suunto
 
-Encapsule `suunto-api-wrapper` côté serveur pour éviter d'exposer les
-identifiants Suunto et les problèmes de CORS au frontend.
+Backend Express qui encapsule `suunto-api-wrapper` côté serveur pour éviter
+d'exposer les identifiants Suunto et les problèmes de CORS au frontend, et
+frontend statique (HTML/CSS/JS, modules ES natifs, sans build step).
+
+## Arborescence
+
+```
+server.js            Point d'entrée backend (charge .env, démarre l'app)
+src/
+  config.js           Lecture/validation des variables d'environnement
+  app.js               Assemblage Express (sécurité, CORS, session, routes)
+  stores/clientStore.js  Store des sessions Suunto (interface get/set/delete)
+  middleware/auth.js     Garde-fous requireSuuntoClient / requireSession
+  routes/                Un fichier par groupe d'endpoints (auth, workouts, wellness, route)
+  utils/unwrap.js        Normalisation des réponses API Suunto
+
+index.html            Squelette de la page (charge css/styles.css et js/main.js)
+css/styles.css         Tous les styles
+js/                    Un module par responsabilité (api, auth, workouts,
+                        wellness, evolution, route-editor, overview-map, map,
+                        theme, charts, icons, format, config, state, dom)
+```
 
 ## Installation
 
 ```bash
 npm install
+cp .env.example .env   # puis renseigne SESSION_SECRET, ORS_API_KEY, etc.
 ```
 
 ## Lancement
@@ -17,7 +38,10 @@ npm start
 npm run dev
 ```
 
-Le serveur écoute sur `http://localhost:3000` par défaut (variable `PORT`).
+Le serveur backend écoute sur `http://localhost:3000` par défaut (variable
+`PORT`). Sert le frontend séparément (ex: `npx http-server -p 5500` ou
+l'extension Live Server) — édite `<meta name="api-base">` dans `index.html`
+si le backend tourne ailleurs qu'en local.
 
 ## Endpoints
 
@@ -46,16 +70,24 @@ export ORS_API_KEY="ta-clé-ors"
 Sans cette variable, le bouton "Aligner sur les chemins" de l'éditeur
 d'itinéraire renvoie une erreur explicite plutôt que de planter.
 
+## Sécurité en place
+
+- **`SESSION_SECRET`** : le serveur refuse de démarrer en `NODE_ENV=production`
+  si cette variable est absente ou laissée à sa valeur par défaut (voir
+  `src/config.js`).
+- **Headers de sécurité** (`helmet`) et **rate limiting** (`express-rate-limit`,
+  strict sur `/api/login`, plus large sur le reste de `/api/*`) déjà en place
+  dans `src/app.js`.
+- **Store de session** : `src/stores/clientStore.js` expose une interface
+  `get/set/delete` avec une implémentation mémoire par défaut (ne survit pas
+  à un redémarrage, pas partagée entre plusieurs instances). Pour scaler
+  horizontalement, fournis une implémentation Redis (`connect-redis`/`ioredis`)
+  respectant la même interface.
+
 ## Points à adapter avant la prod
 
-- **`SESSION_SECRET`** : définis une vraie valeur secrète en variable d'env.
-- **Store de session** : le store mémoire par défaut d'`express-session`
-  ne convient pas en prod (fuite mémoire, pas de partage entre instances).
-  Utilise `connect-redis` ou équivalent.
 - **HTTPS** : indispensable pour que les cookies `secure` fonctionnent et
   pour protéger le mot de passe envoyé à `/api/login`.
-- **Rate limiting** : ajoute un middleware (`express-rate-limit`) pour ne
-  pas abuser de l'API non officielle de Suunto.
 - **Persistance du `sessionKey`** : si tu redémarres le serveur, tous les
-  utilisateurs sont déconnectés (le `Map` est en mémoire). Envisage de
-  stocker le `sessionKey` Suunto chiffré en base si besoin de persistance.
+  utilisateurs sont déconnectés (store mémoire par défaut). Voir ci-dessus
+  pour brancher un store persistant.
