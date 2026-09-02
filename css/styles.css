@@ -919,6 +919,8 @@
   }
   .hr-zone-settings-reset:hover { color: var(--ink); }
   .hr-zones-estimated { font-weight: 500; color: var(--muted); }
+  .hr-chart-meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  #hr-chart { margin-top: 4px; }
   .hr-zone-estimate-note {
     font-family: var(--sans);
     font-size: 11.5px;

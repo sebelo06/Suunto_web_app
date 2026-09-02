@@ -19,6 +19,82 @@ function buildSmoothPath(points) {
   return d;
 }
 
+// Courbe de fréquence cardiaque au fil d'une séance. Différent de
+// renderLineChart : beaucoup d'échantillons (donc pas de point par mesure),
+// axe X temporel en mm:ss, et baseline calée sur la FC min plutôt que 0.
+// `samples` = [{ t: secondes écoulées, hr: bpm }]. Retourne false si rien à tracer.
+export function renderHrChart(container, samples, { color }) {
+  if (!container) return false;
+  const pts = (samples || []).filter((s) => Number.isFinite(s.hr) && s.hr > 0 && Number.isFinite(s.t));
+  if (pts.length < 2) { container.innerHTML = ""; return false; }
+
+  const width = Math.max(container.clientWidth || 320, 200);
+  const height = 150;
+  const padTop = 16, padBottom = 22, padRight = 10;
+
+  const hrs = pts.map((p) => p.hr);
+  const hrMax = Math.max(...hrs), hrMin = Math.min(...hrs);
+  const yMax = hrMax + 4, yMin = Math.max(0, hrMin - 4);
+  const range = Math.max(yMax - yMin, 1);
+  const mid = Math.round((yMax + yMin) / 2);
+
+  const yLabels = [Math.round(yMax), mid, Math.round(yMin)];
+  const padLeft = Math.min(56, Math.max(...yLabels.map((s) => String(s).length)) * 6 + 16);
+  const plotW = width - padLeft - padRight;
+  const plotH = height - padTop - padBottom;
+
+  const tMin = pts[0].t, tMax = pts[pts.length - 1].t;
+  const tRange = Math.max(tMax - tMin, 1);
+
+  const xy = pts.map((p) => [
+    padLeft + ((p.t - tMin) / tRange) * plotW,
+    padTop + (1 - (p.hr - yMin) / range) * plotH,
+  ]);
+
+  const linePath = buildSmoothPath(xy);
+  const baseY = padTop + plotH;
+  const areaPath = `${linePath} L ${xy[xy.length - 1][0].toFixed(1)} ${baseY} L ${xy[0][0].toFixed(1)} ${baseY} Z`;
+  const gid = `hr-${Math.random().toString(36).slice(2, 9)}`;
+
+  const gridYs = [yMax, (yMax + yMin) / 2, yMin].map((v) => padTop + (1 - (v - yMin) / range) * plotH);
+  const grid = gridYs
+    .map(
+      (y, i) => `
+      <line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${width - padRight}" y2="${y.toFixed(1)}" stroke="var(--panel-line)" stroke-width="1" stroke-dasharray="3,3" />
+      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${yLabels[i]}</text>`
+    )
+    .join("");
+
+  const fmtT = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+  const nTicks = 4;
+  const xticks = Array.from({ length: nTicks + 1 }, (_, i) => {
+    const x = padLeft + (plotW * i) / nTicks;
+    return `<text x="${x.toFixed(1)}" y="${height - 6}" text-anchor="${i === 0 ? "start" : i === nTicks ? "end" : "middle"}" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${fmtT((tRange * i) / nTicks)}</text>`;
+  }).join("");
+
+  // Marqueur au pic de FC (repère utile sans surcharger la courbe de points).
+  const maxIdx = hrs.indexOf(hrMax);
+  const [mx, my] = xy[maxIdx];
+  const peak = `<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="3.5" fill="${color}" stroke="var(--bg-elevated)" stroke-width="2"><title>Pic ${hrMax} bpm à ${fmtT(pts[maxIdx].t - tMin)}</title></circle>`;
+
+  container.innerHTML = `
+    <svg class="trend-svg" style="height:${height}px;" viewBox="0 0 ${width} ${height}">
+      <defs>
+        <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.32" />
+          <stop offset="100%" stop-color="${color}" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      ${grid}
+      <path d="${areaPath}" fill="url(#${gid})" stroke="none" />
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+      ${peak}
+      ${xticks}
+    </svg>
+  `;
+  return true;
+}
+
 export function renderLineChart(container, items, { color, formatValue }) {
   if (!container) return;
   if (!items.length) {
