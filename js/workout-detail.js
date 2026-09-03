@@ -5,6 +5,7 @@ import { icon, ACTIVITY_ICONS, ACTIVITY_NAMES } from "./icons.js";
 import { escapeHtml } from "./dom.js";
 import { formatDuration, formatDistance, formatPace } from "./format.js";
 import { decodePolyline, buildRouteMap } from "./map.js";
+import { renderHrChart } from "./charts.js";
 import { setDashGreeting, resetDashGreeting } from "./dash-greeting.js";
 
 const trackingListView = document.getElementById("tracking-list-view");
@@ -68,6 +69,25 @@ function estimateZoneTimes(w, maxHr, boundsPct) {
   return masses.map((m) => (m / massSum) * totalTime);
 }
 
+// Temps passé dans chaque zone calculé directement depuis les échantillons FC
+// (le plus précis, et surtout recalculé selon les seuils choisis par l'usager,
+// contrairement aux timeInZone figés par la montre). `samples` = [{ t, hr }].
+function sampleZoneTimes(samples, maxHr, boundsPct) {
+  const pts = (samples || []).filter((s) => Number.isFinite(s.hr) && s.hr > 0 && Number.isFinite(s.t));
+  if (pts.length < 2 || !maxHr) return null;
+  const bpm = boundsPct.map((b) => (b / 100) * maxHr); // longueur 6 : [0, ...seuils, 100%]
+  const zoneOf = (hr) => {
+    for (let z = 4; z >= 0; z--) if (hr >= bpm[z]) return z;
+    return 0;
+  };
+  const times = [0, 0, 0, 0, 0];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const dt = Math.max(0, pts[i + 1].t - pts[i].t);
+    times[zoneOf(pts[i].hr)] += dt;
+  }
+  return times.some((v) => v > 0) ? times : null;
+}
+
 function buildHrZonesHtml(w) {
   const raw = ["timeInZone0", "timeInZone1", "timeInZone2", "timeInZone3", "timeInZone4", "timeInZone5"].map((k) => w[k] || 0);
   const rawTotal = raw.reduce((a, b) => a + b, 0);
@@ -75,7 +95,11 @@ function buildHrZonesHtml(w) {
   const bounds = [0, ...hrZoneThresholds, 100];
 
   let values, estimated;
-  if (rawTotal > 0) {
+  const sampleVals = sampleZoneTimes(w.hrSamples, maxHr, bounds);
+  if (sampleVals) {
+    values = sampleVals;
+    estimated = false;
+  } else if (rawTotal > 0) {
     values = [raw[0] + raw[1], raw[2], raw[3], raw[4], raw[5]];
     estimated = false;
   } else {
@@ -184,7 +208,16 @@ export async function renderWorkoutDetailInto(container, username, key, onClose)
   container.querySelector(".close-detail-btn").addEventListener("click", () => onClose?.());
 
   try {
-    const w = await api(`/api/workouts/${encodeURIComponent(username)}/${encodeURIComponent(key)}`);
+    const [w, workoutData] = await Promise.all([
+      api(`/api/workouts/${encodeURIComponent(username)}/${encodeURIComponent(key)}`),
+      api(`/api/workouts/${encodeURIComponent(username)}/${encodeURIComponent(key)}/data`).catch(() => null),
+    ]);
+    // Échantillons FC (t = secondes écoulées, hr = bpm) : alimentent la courbe
+    // et le calcul exact des zones. Absents sur les séances sans capteur FC.
+    const hrSamples = (workoutData?.heartrates || [])
+      .filter((s) => Number.isFinite(s?.hr) && s.hr > 0)
+      .map((s) => ({ t: s.t, hr: s.hr }));
+    w.hrSamples = hrSamples;
     const points = w.polyline ? decodePolyline(w.polyline) : [];
     setDashGreeting(
       ACTIVITY_NAMES[w.activityId] || "Séance",
@@ -213,10 +246,22 @@ export async function renderWorkoutDetailInto(container, username, key, onClose)
         <div class="detail-stat"><div class="value">${w.cadence?.avg != null ? Math.round(w.cadence.avg) : "—"}</div><div class="label">Cadence moy.</div></div>
         <div class="detail-stat"><div class="value">${w.cadence?.max != null ? Math.round(w.cadence.max) : "—"}</div><div class="label">Cadence max</div></div>
       </div>
+      ${hrSamples.length >= 2 ? `
+      <div class="hr-zones" id="hr-chart-section">
+        <div class="hr-zones-header">
+          <div class="hr-zones-label">Fréquence cardiaque</div>
+          <div class="hr-chart-meta">moy ${w.hrdata?.workoutAvgHR ?? "—"} · max ${w.hrdata?.workoutMaxHR ?? "—"} bpm</div>
+        </div>
+        <div id="hr-chart"></div>
+      </div>` : ""}
       <div id="hr-zones-container">${buildHrZonesHtml(w)}</div>
     `;
 
     if (points.length) buildRouteMap(mapId, points);
+    if (hrSamples.length >= 2) {
+      const hrColor = getComputedStyle(document.documentElement).getPropertyValue("--signal").trim() || "#e5484d";
+      renderHrChart(document.getElementById("hr-chart"), hrSamples, { color: hrColor });
+    }
 
     const rerenderHrZones = (keepOpen) => {
       const hrContainer = container.querySelector("#hr-zones-container");
