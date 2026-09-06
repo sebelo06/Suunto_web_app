@@ -6,7 +6,17 @@ import { escapeHtml } from "./dom.js";
 import { formatDuration, formatDistance, formatPace } from "./format.js";
 import { decodePolyline, buildRouteMap } from "./map.js";
 import { renderHrChart } from "./charts.js";
+import { buildSpeedSamples, computeDecoupling, renderDecouplingCard } from "./decoupling.js";
 import { setDashGreeting, resetDashGreeting } from "./dash-greeting.js";
+import {
+  DEFAULT_HR_ZONE_THRESHOLDS,
+  readHrZoneThresholds,
+  writeHrZoneThresholds,
+  sampleZoneTimes,
+  estimateZoneTimes,
+  zoneBoundsPct,
+  computeTrimp,
+} from "./training-load.js";
 
 const trackingListView = document.getElementById("tracking-list-view");
 const trackingDetailView = document.getElementById("tracking-detail-view");
@@ -20,79 +30,21 @@ export function closeWorkoutDetail() {
   if (state.currentMap) { state.currentMap.remove(); state.currentMap = null; state.currentTileLayer = null; }
 }
 
-// 5 zones FC "classiques" (% de FC max), seuils par défaut, configurables
-// par l'usager et persistés en localStorage (même logique que les
-// métriques de l'onglet Évolution).
+// Couleurs et libellés des 5 zones FC "classiques" (affichage). La logique de
+// calcul (seuils, estimation, temps par zone, TRIMP) vit dans training-load.js
+// et est partagée avec le socle de charge — ici on ne garde que l'UI.
 const HR_ZONE_COLORS = ["#4fa3c9", "#49c6b5", "#e8c547", "#ff9c4a", "#e5484d"];
 const HR_ZONE_NAMES = ["Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5"];
-const DEFAULT_HR_ZONE_THRESHOLDS = [60, 70, 80, 90]; // bornes entre Z1/Z2, Z2/Z3, Z3/Z4, Z4/Z5, en % FC max
 
-function readStoredHrZoneThresholds() {
-  try {
-    const arr = JSON.parse(localStorage.getItem("suunto-hr-zone-thresholds") || "null");
-    if (Array.isArray(arr) && arr.length === 4 && arr.every((n) => Number.isFinite(n))) return arr;
-  } catch { /* ignore */ }
-  return null;
-}
-function writeStoredHrZoneThresholds(arr) {
-  try { localStorage.setItem("suunto-hr-zone-thresholds", JSON.stringify(arr)); } catch { /* ignore */ }
-}
-let hrZoneThresholds = readStoredHrZoneThresholds() || DEFAULT_HR_ZONE_THRESHOLDS;
-
-// Approximation de la fonction d'erreur (Abramowitz & Stegun 7.1.26),
-// utilisée pour estimer une distribution normale de FC.
-function erf(x) {
-  const sign = x < 0 ? -1 : 1;
-  x = Math.abs(x);
-  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
-  const t = 1 / (1 + p * x);
-  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-  return sign * y;
-}
-function normalCdf(x, mean, sigma) { return 0.5 * (1 + erf((x - mean) / (sigma * Math.SQRT2))); }
-
-// Beaucoup de séances Suunto n'ont pas de timeInZone0..5 renseigné (pas de
-// répartition par zone fournie par l'API pour ce type de séance/capteur).
-// Dans ce cas on estime la répartition du temps par zone à partir d'une
-// distribution normale centrée sur la FC moyenne (écart-type dérivé de
-// l'écart avg/max) — approximation clairement signalée comme telle.
-function estimateZoneTimes(w, maxHr, boundsPct) {
-  const avg = w.hrdata?.workoutAvgHR;
-  const totalTime = w.totalTime;
-  if (!avg || !totalTime || !maxHr) return null;
-  const max = w.hrdata?.workoutMaxHR || maxHr;
-  const sigma = Math.max(6, (max - avg) / 1.8);
-  const bpmBounds = boundsPct.map((b) => (b / 100) * maxHr);
-  const cdfs = bpmBounds.map((b, i) => (i === 0 ? 0 : i === bpmBounds.length - 1 ? 1 : normalCdf(b, avg, sigma)));
-  const masses = cdfs.slice(1).map((c, i) => Math.max(0, c - cdfs[i]));
-  const massSum = masses.reduce((a, b) => a + b, 0) || 1;
-  return masses.map((m) => (m / massSum) * totalTime);
-}
-
-// Temps passé dans chaque zone calculé directement depuis les échantillons FC
-// (le plus précis, et surtout recalculé selon les seuils choisis par l'usager,
-// contrairement aux timeInZone figés par la montre). `samples` = [{ t, hr }].
-function sampleZoneTimes(samples, maxHr, boundsPct) {
-  const pts = (samples || []).filter((s) => Number.isFinite(s.hr) && s.hr > 0 && Number.isFinite(s.t));
-  if (pts.length < 2 || !maxHr) return null;
-  const bpm = boundsPct.map((b) => (b / 100) * maxHr); // longueur 6 : [0, ...seuils, 100%]
-  const zoneOf = (hr) => {
-    for (let z = 4; z >= 0; z--) if (hr >= bpm[z]) return z;
-    return 0;
-  };
-  const times = [0, 0, 0, 0, 0];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const dt = Math.max(0, pts[i + 1].t - pts[i].t);
-    times[zoneOf(pts[i].hr)] += dt;
-  }
-  return times.some((v) => v > 0) ? times : null;
-}
+// Seuils configurables par l'usager (état mutable de l'UI), initialisés depuis
+// le stockage partagé pour rester synchrones avec le reste de l'app.
+let hrZoneThresholds = readHrZoneThresholds();
 
 function buildHrZonesHtml(w) {
   const raw = ["timeInZone0", "timeInZone1", "timeInZone2", "timeInZone3", "timeInZone4", "timeInZone5"].map((k) => w[k] || 0);
   const rawTotal = raw.reduce((a, b) => a + b, 0);
   const maxHr = w.hrdata?.userMaxHR || w.hrdata?.hrmax || w.hrdata?.workoutMaxHR || null;
-  const bounds = [0, ...hrZoneThresholds, 100];
+  const bounds = zoneBoundsPct(hrZoneThresholds);
 
   let values, estimated;
   const sampleVals = sampleZoneTimes(w.hrSamples, maxHr, bounds);
@@ -176,14 +128,14 @@ function bindHrZonesEvents(container, w, rerender) {
       for (let j = 1; j < next.length; j++) next[j] = Math.max(next[j], next[j - 1] + 1);
       for (let j = next.length - 2; j >= 0; j--) next[j] = Math.min(next[j], next[j + 1] - 1);
       hrZoneThresholds = next;
-      writeStoredHrZoneThresholds(hrZoneThresholds);
+      writeHrZoneThresholds(hrZoneThresholds);
       rerender(true);
     });
   });
 
   container.querySelector("#hr-zone-settings-reset").addEventListener("click", () => {
     hrZoneThresholds = [...DEFAULT_HR_ZONE_THRESHOLDS];
-    writeStoredHrZoneThresholds(hrZoneThresholds);
+    writeHrZoneThresholds(hrZoneThresholds);
     rerender(true);
   });
 }
@@ -218,6 +170,19 @@ export async function renderWorkoutDetailInto(container, username, key, onClose)
       .filter((s) => Number.isFinite(s?.hr) && s.hr > 0)
       .map((s) => ({ t: s.t, hr: s.hr }));
     w.hrSamples = hrSamples;
+
+    // Vitesse dérivée du GPS (Suunto ne fournit pas de série de vitesse) pour le
+    // découplage cardiaque Pa:HR. Null si la séance n'a pas de tracé exploitable.
+    const speedSamples = buildSpeedSamples(workoutData?.locations || []);
+    const decoupling = computeDecoupling(hrSamples, speedSamples);
+
+    // Charge de la séance (TRIMP par zone). On utilise la même FCmax que les
+    // barres de zones ci-dessous pour rester cohérent visuellement ; le socle
+    // de charge (readiness) s'appuie, lui, sur une FCmax fiabilisée du corpus.
+    const detailMaxHr = w.hrdata?.userMaxHR || w.hrdata?.hrmax || w.hrdata?.workoutMaxHR || null;
+    const trimp = computeTrimp(w, { maxHr: detailMaxHr, thresholds: hrZoneThresholds });
+    const trimpMethodLabel = { samples: "d'après la FC seconde/seconde", zones: "d'après les zones de la montre", estimated: "estimé depuis la FC moyenne" }[trimp.method] || "";
+
     const points = w.polyline ? decodePolyline(w.polyline) : [];
     setDashGreeting(
       ACTIVITY_NAMES[w.activityId] || "Séance",
@@ -245,6 +210,7 @@ export async function renderWorkoutDetailInto(container, username, key, onClose)
         <div class="detail-stat"><div class="value">${w.totalAscent != null ? Math.round(w.totalAscent) + " m" : "—"}</div><div class="label">Dénivelé +</div></div>
         <div class="detail-stat"><div class="value">${w.cadence?.avg != null ? Math.round(w.cadence.avg) : "—"}</div><div class="label">Cadence moy.</div></div>
         <div class="detail-stat"><div class="value">${w.cadence?.max != null ? Math.round(w.cadence.max) : "—"}</div><div class="label">Cadence max</div></div>
+        <div class="detail-stat"${trimpMethodLabel ? ` title="TRIMP d'Edwards ${trimpMethodLabel}"` : ""}><div class="value">${trimp.value > 0 ? Math.round(trimp.value) : "—"}</div><div class="label">Charge (TRIMP)</div></div>
       </div>
       ${hrSamples.length >= 2 ? `
       <div class="hr-zones" id="hr-chart-section">
@@ -254,9 +220,11 @@ export async function renderWorkoutDetailInto(container, username, key, onClose)
         </div>
         <div id="hr-chart"></div>
       </div>` : ""}
+      <div id="decoupling-container"></div>
       <div id="hr-zones-container">${buildHrZonesHtml(w)}</div>
     `;
 
+    if (decoupling) renderDecouplingCard(container.querySelector("#decoupling-container"), decoupling);
     if (points.length) buildRouteMap(mapId, points);
     if (hrSamples.length >= 2) {
       const hrColor = getComputedStyle(document.documentElement).getPropertyValue("--signal").trim() || "#e5484d";

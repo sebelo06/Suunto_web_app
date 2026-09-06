@@ -7,6 +7,7 @@ import { formatDuration, formatDistance, formatClock } from "./format.js";
 import { renderLineChart } from "./charts.js";
 import { openWorkoutDetail } from "./workout-detail.js";
 import { recenterEditorMap } from "./route-editor.js";
+import { updateReadinessWorkouts } from "./readiness.js";
 
 const workoutList = document.getElementById("workout-list");
 const workoutLoadMoreBtn = document.getElementById("workout-load-more");
@@ -193,15 +194,20 @@ function renderWorkoutList() {
   workoutList.innerHTML = workouts
     .map((w, i) => `
       <div class="workout-row" data-index="${i}">
-        <div class="workout-card-top">
+        <div class="workout-row-main">
           <div class="activity-icon">${icon(ACTIVITY_ICONS[w.activityId] || "mountain", 19)}</div>
-          <div class="workout-chevron">›</div>
+          <div>
+            <div class="workout-activity">${ACTIVITY_NAMES[w.activityId] || "Séance"}</div>
+            <div class="workout-date">${new Date(w.startTime).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</div>
+          </div>
         </div>
-        <div class="workout-activity">${ACTIVITY_NAMES[w.activityId] || "Séance"}</div>
-        <div class="workout-date">${new Date(w.startTime).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</div>
-        <div class="workout-stats">
-          ${formatDistance(w.totalDistance)} · ${formatDuration(w.totalTime || 0)}
+        <div class="workout-row-metrics">
+          <div class="workout-metric"><div class="value">${formatDuration(w.totalTime || 0)}</div><div class="label">Durée</div></div>
+          <div class="workout-metric"><div class="value">${formatDistance(w.totalDistance)}</div><div class="label">Distance</div></div>
+          <div class="workout-metric"><div class="value">${w.totalAscent != null ? `+${Math.round(w.totalAscent)} m` : "—"}</div><div class="label">D+</div></div>
+          <div class="workout-metric"><div class="value">${w.hrdata?.workoutAvgHR ? `${Math.round(w.hrdata.workoutAvgHR)} bpm` : "—"}</div><div class="label">FC moy</div></div>
         </div>
+        <div class="workout-chevron">${icon("chevronRight", 18)}</div>
       </div>
     `)
     .join("");
@@ -228,6 +234,7 @@ export async function loadWorkouts() {
     renderTrendChart(workouts);
     renderRacePredictor(workouts);
     renderCalendarHeatmap(workouts);
+    updateReadinessWorkouts(workouts);
 
     if (!workouts.length) {
       workoutList.innerHTML = `<div class="empty"><span class="empty-icon">${icon("mountain", 28)}</span>Aucune séance trouvée.<br>Va enregistrer une sortie avec ta montre !</div>`;
@@ -264,6 +271,7 @@ export async function loadMoreWorkouts() {
     renderTrendChart(latestWorkouts);
     renderRacePredictor(latestWorkouts);
     renderCalendarHeatmap(latestWorkouts);
+    updateReadinessWorkouts(latestWorkouts);
     renderWorkoutList();
   } catch {
     workoutsHasMore = true;
