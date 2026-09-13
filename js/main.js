@@ -1,7 +1,8 @@
 // js/main.js
 import { state } from "./state.js";
 import { initTheme } from "./theme.js";
-import { initAuth, showLogin } from "./auth.js";
+import { initAuth, showLogin, showDashboard } from "./auth.js";
+import { api } from "./api.js";
 import { initEvolutionTab, renderEvolution } from "./evolution.js";
 import { initRouteEditor } from "./route-editor.js";
 import { initOverviewMap } from "./overview-map.js";
@@ -77,6 +78,10 @@ tabButtons.forEach((btn) => {
   });
 });
 
-// Au chargement : pas de vérification de session automatique ici
-// (l'API ne fournit pas de "/me"). On part sur l'écran de connexion.
-showLogin();
+// Au chargement : on interroge le backend pour savoir si une session est
+// déjà active. Le web bénéficie du fait qu'un refresh ne déconnecte plus ;
+// le desktop, du fait que le credential persisté rouvre l'app connectée.
+// En cas d'erreur (backend injoignable), on retombe sur l'écran de connexion.
+api("/api/session")
+  .then((s) => (s && s.authenticated ? showDashboard() : showLogin()))
+  .catch(() => showLogin());
