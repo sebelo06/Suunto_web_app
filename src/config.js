@@ -18,11 +18,16 @@ if (isProduction && SESSION_SECRET === DEFAULT_SESSION_SECRET) {
   );
 }
 
+const DEFAULT_FRONTEND_ORIGINS = ["http://localhost:5500", "http://localhost:8080"];
+const FRONTEND_ORIGINS = process.env.FRONTEND_ORIGIN
+  ? process.env.FRONTEND_ORIGIN.split(",").map((o) => o.trim())
+  : DEFAULT_FRONTEND_ORIGINS;
+
 module.exports = {
   NODE_ENV,
   isProduction,
   PORT: process.env.PORT || 3000,
-  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || "http://localhost:5500",
+  FRONTEND_ORIGIN: FRONTEND_ORIGINS,
   SESSION_SECRET,
   ORS_API_KEY: process.env.ORS_API_KEY,
 };

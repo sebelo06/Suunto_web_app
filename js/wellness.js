@@ -5,6 +5,7 @@ import { escapeHtml } from "./dom.js";
 import { formatDuration } from "./format.js";
 import { renderLineChart } from "./charts.js";
 import { refreshWeekTile } from "./workouts.js";
+import { updateReadinessWellness } from "./readiness.js";
 
 const wellnessTiles = document.getElementById("wellness-tiles");
 
@@ -44,6 +45,12 @@ export async function loadWellness() {
       (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
     );
     const lastRecovery = recoveryEntries[0]?.entryData;
+
+    updateReadinessWellness({
+      recovery: lastRecovery?.balance ?? null,
+      sleepDuration: lastNight?.duration ?? null,
+      sleepQuality: lastNight?.quality ?? null,
+    });
 
     wellnessTiles.innerHTML = `
       <div class="stat-tile featured" style="--tile-accent: var(--signal);">

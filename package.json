@@ -8,7 +8,9 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "front": "python3 -m http.server 5500",
+    "dev:all": "node --watch server.js & python3 -m http.server 5500"
   },
   "dependencies": {
     "cors": "^2.8.5",

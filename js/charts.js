@@ -5,16 +5,25 @@
 // et l'onglet Évolution.
 import { icon } from "./icons.js";
 
-// Lisse une série de points [x,y] en courbe (astuce des points milieux,
-// sans dépendance externe) plutôt qu'une ligne brisée.
-function buildSmoothPath(points) {
+// Lisse une série de points [x,y] via une spline Catmull-Rom convertie en
+// courbes de Bézier cubiques. Contrairement à l'astuce des points milieux, la
+// courbe passe exactement par chaque mesure et suit la pente locale, ce qui
+// donne un tracé plus naturel et moins ondulant. `tension` (0 = anguleux,
+// 1 = très lisse) est volontairement bas pour rester proche des données.
+function buildSmoothPath(points, tension = 0.6) {
   if (points.length < 2) return points.length ? `M ${points[0][0]} ${points[0][1]}` : "";
+  const k = tension / 6;
   let d = `M ${points[0][0]} ${points[0][1]}`;
   for (let i = 0; i < points.length - 1; i++) {
-    const [x0, y0] = points[i];
-    const [x1, y1] = points[i + 1];
-    const mx = (x0 + x1) / 2;
-    d += ` Q ${mx} ${y0} ${mx} ${(y0 + y1) / 2} Q ${mx} ${y1} ${x1} ${y1}`;
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) * k;
+    const c1y = p1[1] + (p2[1] - p0[1]) * k;
+    const c2x = p2[0] - (p3[0] - p1[0]) * k;
+    const c2y = p2[1] - (p3[1] - p1[1]) * k;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
   }
   return d;
 }
@@ -142,6 +151,12 @@ export function renderLineChart(container, items, { color, formatValue }) {
     .map(([x, y], i) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${color}" stroke="var(--bg-elevated)" stroke-width="2"><title>${items[i].label} · ${formatValue(items[i].value)}</title></circle>`)
     .join("");
 
+  // Au-delà d'une poignée de points, afficher toutes les étiquettes d'axe X les
+  // rend illisibles : on n'en garde qu'une poignée régulièrement espacée (la
+  // date exacte de chaque point reste lisible via l'infobulle du point).
+  const maxXLabels = 8;
+  const labelEvery = Math.max(1, Math.ceil(items.length / maxXLabels));
+
   container.innerHTML = `
     <svg class="trend-svg" viewBox="0 0 ${width} ${height}">
       <defs>
@@ -155,6 +170,6 @@ export function renderLineChart(container, items, { color, formatValue }) {
       <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
       ${dots}
     </svg>
-    <div class="trend-x-labels" style="padding-left:${padLeft}px; padding-right:${padRight}px;">${items.map((it) => `<span>${it.label}</span>`).join("")}</div>
+    <div class="trend-x-labels" style="padding-left:${padLeft}px; padding-right:${padRight}px;">${items.map((it, i) => `<span>${i % labelEvery === 0 || i === items.length - 1 ? it.label : ""}</span>`).join("")}</div>
   `;
 }

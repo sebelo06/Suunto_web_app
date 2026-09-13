@@ -1,6 +1,9 @@
 // js/auth.js
 import { api } from "./api.js";
 import { loadWorkouts } from "./workouts.js";
+import { loadVolume } from "./volume.js";
+import { loadAcwr } from "./acwr.js";
+import { loadHrDistribution } from "./hr-distribution.js";
 import { loadWellness } from "./wellness.js";
 import { loadEvolutionData } from "./evolution.js";
 import { resetDashGreeting } from "./dash-greeting.js";
@@ -22,6 +25,9 @@ export function showDashboard() {
   resetDashGreeting();
   document.getElementById("tab-tracking")?.classList.add("enter");
   loadWorkouts();
+  loadVolume();
+  loadAcwr();
+  loadHrDistribution();
   loadWellness();
   loadEvolutionData();
 }
