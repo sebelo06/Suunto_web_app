@@ -12,9 +12,8 @@ import {
   DEFAULT_HR_ZONE_THRESHOLDS,
   readHrZoneThresholds,
   writeHrZoneThresholds,
-  sampleZoneTimes,
-  estimateZoneTimes,
   zoneBoundsPct,
+  zoneTimesFor,
   computeTrimp,
 } from "./training-load.js";
 
@@ -41,24 +40,13 @@ const HR_ZONE_NAMES = ["Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5"];
 let hrZoneThresholds = readHrZoneThresholds();
 
 function buildHrZonesHtml(w) {
-  const raw = ["timeInZone0", "timeInZone1", "timeInZone2", "timeInZone3", "timeInZone4", "timeInZone5"].map((k) => w[k] || 0);
-  const rawTotal = raw.reduce((a, b) => a + b, 0);
   const maxHr = w.hrdata?.userMaxHR || w.hrdata?.hrmax || w.hrdata?.workoutMaxHR || null;
   const bounds = zoneBoundsPct(hrZoneThresholds);
 
-  let values, estimated;
-  const sampleVals = sampleZoneTimes(w.hrSamples, maxHr, bounds);
-  if (sampleVals) {
-    values = sampleVals;
-    estimated = false;
-  } else if (rawTotal > 0) {
-    values = [raw[0] + raw[1], raw[2], raw[3], raw[4], raw[5]];
-    estimated = false;
-  } else {
-    values = estimateZoneTimes(w, maxHr, bounds);
-    estimated = true;
-  }
-  if (!values) {
+  // Répartition unifiée via le socle (échantillons FC → timeInZone → estimation),
+  // avec le même garde-fou d'unité que la charge et la distribution hebdo.
+  const zt = zoneTimesFor(w, maxHr, hrZoneThresholds);
+  if (!zt) {
     return `
       <div class="hr-zones">
         <div class="hr-zones-label">Répartition zones FC</div>
@@ -66,6 +54,9 @@ function buildHrZonesHtml(w) {
       </div>
     `;
   }
+
+  const values = zt.times;
+  const estimated = zt.method === "estimated";
 
   const total = values.reduce((a, b) => a + b, 0);
   const segments = values

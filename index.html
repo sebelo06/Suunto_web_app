@@ -9,6 +9,20 @@
 <meta property="og:description" content="Séances, sommeil, récupération et itinéraires Suunto réunis dans un seul tableau de bord." />
 <meta property="og:type" content="website" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23E8421E'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='18' font-weight='800' fill='%23FFFFFF' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+<!-- Applique le thème avant le premier rendu pour éviter tout flash (FOUC).
+     La logique complète (persistance, suivi système) vit dans js/theme.js. -->
+<script>
+  (function () {
+    try {
+      var pref = localStorage.getItem("suunto-theme") || "system";
+      var dark = pref === "dark" ||
+        (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    } catch (e) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+</script>
 <!-- URL du backend ; édite cette valeur pour déployer le frontend ailleurs
      qu'en local (voir js/config.js). -->
 <meta name="api-base" content="http://localhost:3000" />
@@ -22,18 +36,23 @@
 </head>
 <body>
 
-  <header>
-    <div class="brand"><span class="brand-mark">S</span>Suivi <span>Suunto</span></div>
-    <div class="header-actions">
-      <button id="logout-btn">Déconnexion</button>
-    </div>
-  </header>
-  <div class="contour"></div>
-
   <main>
 
     <!-- Écran de connexion -->
     <section id="login-view">
+      <div class="login-theme">
+        <div class="theme-switch" role="group" aria-label="Choix du thème">
+          <button type="button" data-theme-choice="system" title="Thème système" aria-label="Thème système">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+          </button>
+          <button type="button" data-theme-choice="light" title="Thème clair" aria-label="Thème clair">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+          <button type="button" data-theme-choice="dark" title="Thème sombre" aria-label="Thème sombre">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="login-shell">
         <div class="login-visual">
           <div class="hero-badge"><span class="brand-mark">S</span>Suivi Suunto</div>
@@ -100,14 +119,30 @@
 
         <div class="dash-content">
 
-          <div class="dash-greeting">
-            <div class="eyebrow" id="dash-date"></div>
-            <h1 id="dash-greeting-title">Bon retour</h1>
-          </div>
+          <header class="dash-topbar">
+            <div class="dash-greeting">
+              <div class="eyebrow" id="dash-date"></div>
+              <h1 id="dash-greeting-title">Bon retour</h1>
+            </div>
+            <div class="topbar-actions">
+              <div class="theme-switch" role="group" aria-label="Choix du thème">
+                <button type="button" data-theme-choice="system" title="Thème système" aria-label="Thème système">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+                </button>
+                <button type="button" data-theme-choice="light" title="Thème clair" aria-label="Thème clair">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
+                </button>
+                <button type="button" data-theme-choice="dark" title="Thème sombre" aria-label="Thème sombre">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+                </button>
+              </div>
+              <button id="logout-btn">Déconnexion</button>
+            </div>
+          </header>
 
           <div id="tab-evolution" class="tab-panel" style="display:none;">
 
-            <div class="section-label">Évolution<span class="section-hint" id="evo-hint"></span></div>
+            <div class="block-head"><h2>Évolution</h2><span class="section-hint" id="evo-hint"></span></div>
 
             <div class="evo-toolbar">
               <div class="evo-period-switch" id="evo-period-switch">
@@ -137,64 +172,88 @@
 
             <div id="tracking-list-view">
 
-              <div class="section-label">Forme du jour<span class="section-hint">Indicateur d'aide — pas un avis médical</span></div>
-              <div class="card readiness-card" id="readiness-card">
-                <div class="skeleton" style="height:118px;"></div>
-              </div>
+              <section class="dash-block">
+                <div class="block-head">
+                  <h2>Aujourd'hui</h2>
+                  <span class="section-hint">Indicateur d'aide — pas un avis médical</span>
+                </div>
+                <div class="today-grid">
+                  <div class="card readiness-card" id="readiness-card">
+                    <div class="skeleton" style="height:118px;"></div>
+                  </div>
+                  <div class="stat-grid wellness-grid" id="wellness-tiles">
+                    <div class="skeleton-tiles"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+                  </div>
+                </div>
+              </section>
 
-              <div class="section-label">Charge &amp; risque<span class="section-hint">ACWR — rapport charge aiguë / chronique</span></div>
-              <div class="card acwr-card" id="acwr-card">
-                <div class="skeleton" style="height:150px;"></div>
-              </div>
+              <section class="dash-block">
+                <div class="block-head">
+                  <h2>Charge d'entraînement</h2>
+                  <span class="section-hint">Volume glissant, ACWR et temps par zone</span>
+                </div>
+                <div class="load-grid">
+                  <div class="card volume-card" id="volume-card">
+                    <div class="skeleton" style="height:150px;"></div>
+                  </div>
+                  <div class="card acwr-card" id="acwr-card">
+                    <div class="skeleton" style="height:150px;"></div>
+                  </div>
+                  <div class="card hr-week-card" id="hr-week-card">
+                    <div class="skeleton" style="height:170px;"></div>
+                  </div>
+                </div>
+              </section>
 
-              <div class="section-label">Distribution FC hebdo<span class="section-hint">Temps par zone, semaine par semaine</span></div>
-              <div class="card hr-week-card" id="hr-week-card">
-                <div class="skeleton" style="height:170px;"></div>
-              </div>
-
-              <div class="section-label">Bien-être</div>
-              <div class="stat-grid wellness-grid" id="wellness-tiles">
-                <div class="skeleton-tiles"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
-              </div>
-
-              <div class="tracking-analysis">
-                <div class="tracking-col tracking-col-main">
-                  <div class="card">
-                    <div class="trend-card-title">Distance<span class="section-hint" id="trend-hint"></span></div>
-                    <div id="trend-card">
-                      <div class="skeleton" style="height:150px;"></div>
+              <section class="dash-block">
+                <div class="block-head">
+                  <h2>Analyse</h2>
+                  <span class="section-hint">Tendances sur les dernières semaines</span>
+                </div>
+                <div class="tracking-analysis">
+                  <div class="tracking-col tracking-col-main">
+                    <div class="card">
+                      <div class="trend-card-title">Distance<span class="section-hint" id="trend-hint"></span></div>
+                      <div id="trend-card">
+                        <div class="skeleton" style="height:150px;"></div>
+                      </div>
+                    </div>
+                    <div class="card">
+                      <div class="trend-card-title">Régularité<span class="section-hint" id="heatmap-hint"></span></div>
+                      <div id="calendar-heatmap">
+                        <div class="skeleton" style="height:90px;"></div>
+                      </div>
                     </div>
                   </div>
-                  <div class="card">
-                    <div class="trend-card-title">Régularité<span class="section-hint" id="heatmap-hint"></span></div>
-                    <div id="calendar-heatmap">
-                      <div class="skeleton" style="height:90px;"></div>
+                  <div class="tracking-col tracking-col-side">
+                    <div class="card">
+                      <div class="trend-card-title">Sommeil<span class="section-hint" id="trend-sleep-hint"></span></div>
+                      <div id="trend-sleep-card">
+                        <div class="skeleton" style="height:150px;"></div>
+                      </div>
+                    </div>
+                    <div class="card">
+                      <div class="trend-card-title">Prédiction de course<span class="section-hint" id="predict-hint"></span></div>
+                      <div id="predict-card">
+                        <div class="skeleton" style="height:70px;"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div class="tracking-col tracking-col-side">
-                  <div class="card">
-                    <div class="trend-card-title">Sommeil<span class="section-hint" id="trend-sleep-hint"></span></div>
-                    <div id="trend-sleep-card">
-                      <div class="skeleton" style="height:150px;"></div>
-                    </div>
-                  </div>
-                  <div class="card">
-                    <div class="trend-card-title">Prédiction de course<span class="section-hint" id="predict-hint"></span></div>
-                    <div id="predict-card">
-                      <div class="skeleton" style="height:70px;"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </section>
 
-              <div class="section-label">Dernières séances<span class="section-hint">Clique sur une séance pour le détail</span></div>
-              <div class="workout-grid" id="workout-list">
-                <div class="skeleton-rows"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
-              </div>
-              <div class="load-more-row">
-                <button id="workout-load-more" class="load-more-btn" style="display:none;">Charger plus de séances</button>
-              </div>
+              <section class="dash-block">
+                <div class="block-head">
+                  <h2>Dernières séances</h2>
+                  <span class="section-hint">Clique sur une séance pour le détail</span>
+                </div>
+                <div class="workout-grid" id="workout-list">
+                  <div class="skeleton-rows"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+                </div>
+                <div class="load-more-row">
+                  <button id="workout-load-more" class="load-more-btn" style="display:none;">Charger plus de séances</button>
+                </div>
+              </section>
 
             </div>
 
@@ -207,7 +266,7 @@
 
           <div id="tab-itinerary" class="tab-panel" style="display:none;">
 
-            <div class="section-label">Créer un itinéraire</div>
+            <div class="block-head"><h2>Créer un itinéraire</h2><span class="section-hint">Clique sur la carte pour tracer, puis exporte en GPX</span></div>
             <div class="card" style="padding:0;">
               <div class="editor-map" id="editor-map"></div>
               <p class="editor-hint">Clique sur la carte pour placer des points. Le tracé se construit dans l'ordre des clics. L'export GPX interpole le parcours tous les ~30 m et ajoute l'altitude à chaque point.</p>
@@ -225,7 +284,7 @@
 
           <div id="tab-overview" class="tab-panel" style="display:none;">
 
-            <div class="section-label">Toutes mes sorties</div>
+            <div class="block-head"><h2>Toutes mes sorties</h2><span class="section-hint">Superposition de tes dernières séances</span></div>
             <div class="card" style="padding:0;">
               <div class="editor-map" id="overview-map" style="cursor:default;"></div>
               <div class="editor-toolbar">

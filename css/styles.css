@@ -1,8 +1,62 @@
-  /* Hallmark · genre: data-dense dark dashboard · theme: Suunto dark
-   * bg #0D1117 · sidebar #161B22 · card #1C2128 · accent #E8421E · display: Inter
+  /* Hallmark · genre: data-dense dashboard · theme: adaptatif (clair / sombre / système)
+   * accent principal : orange Suunto · display: Inter
+   * :root porte le thème CLAIR ; :root[data-theme="dark"] surcharge pour le sombre.
+   * Le mode « système » est résolu en clair/sombre par js/theme.js.
    * Palette et gabarit inspirés de untitled.pen (mockup Sidebar / Séances / Données / Cartes).
    */
   :root {
+    color-scheme: light;
+
+    /* Neutres — thème clair */
+    --bg: #F4F5F8;
+    --bg-elevated: #FFFFFF;
+    --panel: #FFFFFF;
+    --panel-2: #F1F3F7;
+    --panel-line: #E5E8EF;
+    --panel-line-strong: #D2D8E2;
+    --ink: #161A23;
+    --muted: #5A6472;
+    --muted-2: #98A1B0;
+
+    /* Accent principal — orange Suunto */
+    --signal: #E8421E;                   /* orange Suunto — accent principal */
+    --signal-2: #FF6A3D;                 /* orange clair — second point de dégradé */
+    --signal-ink: #FFFFFF;
+    --signal-soft: color-mix(in oklch, var(--signal) 13%, transparent);
+    --route: #2DA44E;                    /* vert — tendance positive / métrique secondaire */
+    --route-soft: color-mix(in oklch, var(--route) 13%, transparent);
+    --accent-gold: #BF8700;              /* ambre — qualité de sommeil */
+    --accent-gold-soft: color-mix(in oklch, var(--accent-gold) 14%, transparent);
+    --accent-sky: #2563EB;               /* bleu — volume hebdo */
+    --accent-sky-soft: color-mix(in oklch, var(--accent-sky) 12%, transparent);
+    --danger: #CF222E;
+    --danger-soft: color-mix(in oklch, var(--danger) 11%, transparent);
+    --scrim: oklch(28% 0.03 40 / 0.32);
+
+    /* Ombres — thème clair (douces, teintées) */
+    --shadow-xs: 0 1px 2px oklch(30% 0.02 40 / 0.08);
+    --shadow-card: 0 1px 2px oklch(30% 0.02 40 / 0.06), 0 1px 0 oklch(30% 0.02 40 / 0.03);
+    --shadow-lift: 0 1px 2px oklch(30% 0.02 40 / 0.06), 0 18px 34px -22px oklch(30% 0.04 40 / 0.20);
+    --shadow-pop: 0 10px 24px -12px color-mix(in oklch, var(--signal) 45%, transparent);
+
+    /* Géométrie + typographie (partagés) */
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 999px;
+    --mono: "Inter", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --display: "Inter", var(--sans);
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+
+  /* Thème sombre — surcharge des neutres, de l'accent et des ombres.
+     Les variables « -soft » sont définies dans :root avec var(--signal) etc.,
+     donc elles se recalculent automatiquement avec les valeurs sombres. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
     --bg: #0D1117;
     --bg-elevated: #161B22;
     --panel: #1C2128;
@@ -12,32 +66,19 @@
     --ink: #F0F6FC;
     --muted: #8B949E;
     --muted-2: #545D68;
-    --signal: #E8421E;                   /* orange Suunto — accent principal */
-    --signal-2: #FF6A3D;                 /* orange clair — second point de dégradé */
-    --signal-ink: #FFFFFF;
-    --signal-soft: color-mix(in oklch, var(--signal) 15%, transparent);
-    --route: #3FB950;                    /* vert — tendance positive / métrique secondaire */
-    --route-soft: color-mix(in oklch, var(--route) 14%, transparent);
-    --accent-gold: #D29922;              /* ambre — qualité de sommeil */
-    --accent-gold-soft: color-mix(in oklch, var(--accent-gold) 16%, transparent);
-    --accent-sky: #58A6FF;               /* bleu discret — volume hebdo */
-    --accent-sky-soft: color-mix(in oklch, var(--accent-sky) 14%, transparent);
+
+    --signal: #E8421E;                   /* orange Suunto */
+    --signal-2: #FF6A3D;                 /* orange clair */
+    --route: #3FB950;
+    --accent-gold: #D29922;
+    --accent-sky: #58A6FF;
     --danger: #F85149;
-    --danger-soft: color-mix(in oklch, var(--danger) 12%, transparent);
     --scrim: oklch(10% 0.01 40 / 0.6);
-    --radius-sm: 8px;
-    --radius-md: 10px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-    --radius-full: 999px;
+
     --shadow-xs: 0 1px 2px oklch(4% 0 0 / 0.3);
     --shadow-card: 0 1px 0 oklch(4% 0 0 / 0.3);
-    --shadow-lift: 0 1px 1px oklch(4% 0 0 / 0.25), 0 14px 26px -18px oklch(4% 0 0 / 0.5);
-    --shadow-pop: 0 8px 18px -10px color-mix(in oklch, var(--signal) 40%, transparent);
-    --mono: "Inter", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    --display: "Inter", var(--sans);
-    --ease: cubic-bezier(.2,.8,.2,1);
+    --shadow-lift: 0 1px 1px oklch(4% 0 0 / 0.25), 0 18px 34px -20px oklch(4% 0 0 / 0.55);
+    --shadow-pop: 0 10px 24px -12px color-mix(in oklch, var(--signal) 45%, transparent);
   }
 
   * { box-sizing: border-box; }
@@ -62,7 +103,11 @@
     vertical-align: -0.15em;
   }
 
-  html { color-scheme: dark; }
+  /* Transition douce lors du changement de thème sur les surfaces clés */
+  body, .card, .sidebar, .login-shell, .login-card,
+  .hero-badge, #logout-btn, .theme-switch {
+    transition: background-color 0.18s var(--ease), border-color 0.18s var(--ease), color 0.18s var(--ease);
+  }
 
   body {
     margin: 0;
@@ -91,17 +136,13 @@
     opacity: 0.8;
   }
 
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px clamp(16px, 4vw, 48px);
-    background: color-mix(in srgb, var(--bg) 78%, transparent);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  /* Sélecteur de thème de l'écran de connexion, en haut à droite.
+     Sur le tableau de bord, il vit dans le bandeau (.dash-topbar). */
+  .login-theme {
+    position: absolute;
+    top: clamp(16px, 3vw, 28px);
+    right: clamp(16px, 3vw, 32px);
+    z-index: 40;
   }
 
   .brand {
@@ -148,20 +189,55 @@
   #logout-btn:hover { border-color: var(--danger); color: var(--danger); }
   #logout-btn:active { transform: scale(0.96); }
 
+  /* --- Sélecteur de thème (système / clair / sombre) --- */
+  .theme-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    background: var(--panel-2);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-full);
+  }
+  .theme-switch button {
+    width: 30px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted-2);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: color 0.15s var(--ease), background-color 0.15s var(--ease), transform 0.1s var(--ease);
+  }
+  .theme-switch button:hover { color: var(--ink); }
+  .theme-switch button:active { transform: scale(0.9); }
+  .theme-switch button.active {
+    background: var(--bg-elevated);
+    color: var(--signal);
+    box-shadow: var(--shadow-xs);
+  }
+  .theme-switch .icon { width: 15px; height: 15px; }
+
   main {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: clamp(20px, 5vw, 52px) clamp(16px, 4vw, 48px) 100px;
+    width: 100%;
   }
 
-  /* --- Écran de connexion --- */
+  /* --- Écran de connexion (centré, pleine hauteur) --- */
   #login-view {
-    min-height: calc(100vh - 200px);
-    display: block;
-    padding: 4vh 0;
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6vh clamp(16px, 4vw, 48px);
   }
 
   .login-shell {
+    width: 100%;
     max-width: 900px;
     margin: 0 auto;
     display: grid;
@@ -387,8 +463,82 @@
   /* --- Tableau de bord --- */
   #dashboard-view { display: none; }
 
+  /* Bandeau du tableau de bord : salutation à gauche, thème + déconnexion
+     à droite. Collant en haut pour rester accessible au défilement. */
+  .dash-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: calc(-1 * clamp(28px, 3.5vw, 56px)) 0 32px;
+    padding: clamp(18px, 2.4vw, 28px) 0 16px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--panel-line);
+  }
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  /* Blocs thématiques : un titre de niveau 2 puis sa grille de cartes.
+     Remplace la longue pile de sections pleine largeur. */
+  .dash-block { margin: 0 0 40px; }
+  .dash-block:last-child { margin-bottom: 0; }
+  .block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--panel-line);
+  }
+  .block-head h2 {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0;
+    color: var(--ink);
+  }
+  .block-head .section-hint { font-weight: 500; font-size: 12px; color: var(--muted); }
+
+  /* Aujourd'hui : forme du jour mise en avant, tuiles bien-être à côté. */
+  .today-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+  .today-grid .wellness-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Charge : volume + ACWR côte à côte, distribution FC en pleine largeur. */
+  .load-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .load-grid .hr-week-card { grid-column: 1 / -1; }
+
+  @media (max-width: 1100px) {
+    .today-grid, .load-grid { grid-template-columns: 1fr; }
+    .today-grid .wellness-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .today-grid .wellness-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
   .dash-greeting {
-    margin-bottom: 28px;
+    margin-bottom: 0;
     display: flex;
     align-items: baseline;
     gap: 14px;
@@ -428,7 +578,7 @@
     font-size: 13px;
     letter-spacing: -0.01em;
     color: var(--ink);
-    margin: 34px 0 14px;
+    margin: 40px 0 16px;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -439,9 +589,9 @@
   .card {
     background: var(--panel);
     border: 1px solid var(--panel-line);
-    border-radius: var(--radius-lg);
-    padding: 18px 20px;
-    box-shadow: var(--shadow-card);
+    border-radius: var(--radius-xl);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-lift);
     overflow: hidden;
   }
 
@@ -600,7 +750,6 @@
     grid-template-columns: 1.6fr 1fr;
     gap: 12px;
     align-items: start;
-    margin: 34px 0;
   }
   .tracking-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   @media (max-width: 860px) {
@@ -741,6 +890,46 @@
   .skeleton-rows .skeleton:last-child { margin-bottom: 0; }
 
   /* --- Forme du jour --- */
+  /* Carte Volume glissant : trois colonnes de cumuls (7 / 28 / 365 j) */
+  .vol-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 640px) { .vol-grid { grid-template-columns: 1fr; } }
+  .vol-col {
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius-lg, 12px);
+    padding: 12px 14px;
+  }
+  .vol-col-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .vol-window { font-weight: 700; font-size: 12.5px; color: var(--ink); }
+  .vol-count { font-family: var(--mono); font-size: 10.5px; color: var(--muted-2, var(--muted)); }
+  .vol-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+  }
+  .vol-metric { font-size: 11.5px; color: var(--muted); flex: 1; }
+  .vol-value { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+  .vol-delta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    min-width: 52px;
+    text-align: right;
+  }
+  .vol-delta-up { color: var(--route); }
+  .vol-delta-down { color: var(--signal); }
+  .vol-delta-flat, .vol-delta-none { color: var(--muted-2, var(--muted)); }
+  .vol-note { margin-top: 12px; font-size: 11px; color: var(--muted); }
+
   /* Carte Charge & risque (ACWR) */
   .acwr-card { --acwr-accent: var(--route); }
   .acwr-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
@@ -1043,7 +1232,7 @@
   .hr-week-high {
     margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--muted);
   }
-  .hr-week-high b { color: var(--text); font-weight: 600; }
+  .hr-week-high b { color: var(--ink); font-weight: 600; }
   .hr-week-high.hr-week-up b { color: var(--signal); }
   .hr-week-high.hr-week-down b { color: var(--route); }
   .hr-week-legend { margin-top: 10px; }
@@ -1197,32 +1386,37 @@
   }
 
   /* --- Disposition tableau de bord : sidebar + contenu --- */
+  /* App-shell plein écran : rail de menu à gauche, contenu qui remplit l'écran */
   .dash-layout {
     display: flex;
-    align-items: flex-start;
-    gap: 20px;
+    align-items: stretch;
+    gap: 0;
+    min-height: 100vh;
   }
   .dash-content {
     flex: 1;
     min-width: 0;
+    max-width: 1360px;
+    padding: clamp(28px, 3.5vw, 56px) clamp(20px, 4vw, 60px) 120px;
   }
 
   .sidebar {
     flex-shrink: 0;
-    width: 224px;
+    width: 250px;
     position: sticky;
-    top: 84px;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     gap: 8px;
     background: var(--bg-elevated);
-    border: 1px solid var(--panel-line);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
-    padding: 14px 10px;
+    border: 0;
+    border-right: 1px solid var(--panel-line);
+    padding: 22px 14px;
     transition: width 0.2s var(--ease);
   }
-  .sidebar.collapsed { width: 60px; }
+  .sidebar.collapsed { width: 72px; }
 
   .sidebar-logo-row {
     display: flex;
@@ -1312,8 +1506,8 @@
     font-family: var(--sans);
     font-weight: 600;
     font-size: 12.5px;
-    padding: 10px 14px 2px;
-    margin-top: 2px;
+    padding: 14px 14px 4px;
+    margin-top: auto;
     cursor: pointer;
     white-space: nowrap;
   }
@@ -1330,19 +1524,36 @@
   .sidebar.collapsed .tab-label { display: none; }
 
   @media (max-width: 860px) {
-    .dash-layout { flex-direction: column; }
+    .dash-layout { flex-direction: column; min-height: 0; }
     .sidebar {
-      position: static;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: auto;
       width: 100% !important;
       flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-right: 0;
+      border-bottom: 1px solid var(--panel-line);
       overflow-x: auto;
       scrollbar-width: none;
     }
     .sidebar::-webkit-scrollbar { display: none; }
+    .sidebar-logo-row { padding: 0 6px 0 2px; }
+    .nav-label { display: none; }
     .tab-nav { flex-direction: row; flex: 1; }
     .sidebar.collapsed .tab-label { display: inline; }
     .sidebar.collapsed .tab-btn { justify-content: flex-start; padding: 10px 14px; }
     .sidebar-toggle { display: none; }
+    .dash-content { padding: 24px 18px 90px; }
+    .dash-topbar {
+      position: static;
+      margin: -24px 0 24px;
+      padding: 16px 0 14px;
+      backdrop-filter: none;
+    }
   }
 
   @keyframes panel-enter {

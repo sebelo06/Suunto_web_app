@@ -53,7 +53,71 @@ export function addTileLayer(map, theme) {
   return base;
 }
 
+// --- Gestion du thème : clair / sombre / système -------------------------
+
+const STORAGE_KEY = "suunto-theme";
+const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+
+function readPref() {
+  try {
+    const p = localStorage.getItem(STORAGE_KEY);
+    return p === "light" || p === "dark" || p === "system" ? p : "system";
+  } catch {
+    return "system";
+  }
+}
+
+function writePref(pref) {
+  try { localStorage.setItem(STORAGE_KEY, pref); } catch { /* ignore */ }
+}
+
+// Résout une préférence (dont « system ») vers un thème concret.
+function resolveTheme(pref) {
+  if (pref === "light" || pref === "dark") return pref;
+  return darkMedia.matches ? "dark" : "light";
+}
+
+// Met à jour les tuiles des cartes déjà instanciées quand le thème change.
+function refreshMapTiles(theme) {
+  const url = TILE_URLS[theme] || TILE_URLS.dark;
+  [state.currentTileLayer, state.editorTileLayer, state.overviewTileLayer].forEach((layer) => {
+    if (layer && typeof layer.setUrl === "function") layer.setUrl(url);
+  });
+}
+
+// Reflète la préférence active dans le sélecteurs de thème.
+function syncSwitch(pref) {
+  document.querySelectorAll(".theme-switch [data-theme-choice]").forEach((btn) => {
+    const on = btn.dataset.themeChoice === pref;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", String(on));
+  });
+}
+
+function applyTheme(pref) {
+  const theme = resolveTheme(pref);
+  state.currentTheme = theme;
+  document.documentElement.setAttribute("data-theme", theme);
+  refreshMapTiles(theme);
+  syncSwitch(pref);
+}
+
 export function initTheme() {
-  state.currentTheme = "dark";
-  document.documentElement.setAttribute("data-theme", "dark");
+  applyTheme(readPref());
+
+  // Plusieurs sélecteurs coexistent (écran de connexion + bandeau du
+  // tableau de bord) : on écoute au niveau du document et on les
+  // resynchronise tous via syncSwitch().
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".theme-switch [data-theme-choice]");
+    if (!btn) return;
+    const pref = btn.dataset.themeChoice;
+    writePref(pref);
+    applyTheme(pref);
+  });
+
+  // En mode « système », suit les changements de préférence de l'OS en direct.
+  darkMedia.addEventListener("change", () => {
+    if (readPref() === "system") applyTheme("system");
+  });
 }
