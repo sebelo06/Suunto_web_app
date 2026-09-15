@@ -8,6 +8,7 @@ import { renderLineChart } from "./charts.js";
 import { openWorkoutDetail } from "./workout-detail.js";
 import { recenterEditorMap } from "./route-editor.js";
 import { updateReadinessWorkouts } from "./readiness.js";
+import { updateKpiData } from "./kpi.js";
 
 const workoutList = document.getElementById("workout-list");
 const workoutLoadMoreBtn = document.getElementById("workout-load-more");
@@ -17,22 +18,6 @@ const WORKOUT_PAGE_SIZE = 20;
 let workoutOffset = 0;
 let workoutsHasMore = true;
 let workoutsLoadingMore = false;
-
-function renderWeekTile(workouts) {
-  const weekTile = document.getElementById("week-tile");
-  if (!weekTile) return;
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  const dayOffset = (now.getDay() + 6) % 7; // lundi = début de semaine
-  startOfWeek.setDate(now.getDate() - dayOffset);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const thisWeek = workouts.filter((w) => new Date(w.startTime) >= startOfWeek);
-  const totalDistance = thisWeek.reduce((sum, w) => sum + (w.totalDistance || 0), 0);
-
-  weekTile.querySelector(".value").textContent = formatDistance(totalDistance);
-  weekTile.querySelector(".label").textContent = `Cette semaine · ${thisWeek.length} séance${thisWeek.length > 1 ? "s" : ""}`;
-}
 
 function renderTrendChart(workouts) {
   const trendCard = document.getElementById("trend-card");
@@ -230,7 +215,7 @@ export async function loadWorkouts() {
     workoutOffset = workouts.length;
     if (workouts.length < WORKOUT_PAGE_SIZE) workoutsHasMore = false;
     latestWorkouts = workouts;
-    renderWeekTile(workouts);
+    updateKpiData({ workouts });
     renderTrendChart(workouts);
     renderRacePredictor(workouts);
     renderCalendarHeatmap(workouts);
@@ -267,7 +252,7 @@ export async function loadMoreWorkouts() {
     workoutOffset += more.length;
     if (more.length < WORKOUT_PAGE_SIZE) workoutsHasMore = false;
     latestWorkouts = (latestWorkouts || []).concat(more);
-    renderWeekTile(latestWorkouts);
+    updateKpiData({ workouts: latestWorkouts });
     renderTrendChart(latestWorkouts);
     renderRacePredictor(latestWorkouts);
     renderCalendarHeatmap(latestWorkouts);
@@ -284,10 +269,6 @@ export async function loadMoreWorkouts() {
 
 export function getLatestWorkouts() {
   return latestWorkouts;
-}
-
-export function refreshWeekTile() {
-  if (latestWorkouts) renderWeekTile(latestWorkouts);
 }
 
 workoutLoadMoreBtn.addEventListener("click", loadMoreWorkouts);

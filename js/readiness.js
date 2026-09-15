@@ -13,6 +13,13 @@
 import { icon, ACTIVITY_NAMES } from "./icons.js";
 import { formatDuration } from "./format.js";
 import { computeTrimp, resolveMaxHr } from "./training-load.js";
+import { infoPop, wireInfoPops } from "./info-pop.js";
+
+const READINESS_INFO = infoPop(
+  "Forme du jour",
+  `<p>Un indice qui croise ta <b>récupération</b> (FC de repos, variabilité), ton <b>sommeil</b> et ta <b>charge récente</b>.</p>` +
+  `<p>Plus il est élevé, plus ton corps est prêt pour une séance intense. Indicateur d'aide, pas un avis médical.</p>`
+);
 
 let recoveryBalance = null; // 0..1
 let sleepDuration = null; // secondes
@@ -223,6 +230,7 @@ function render() {
     <div class="readiness-head">
       <span class="tile-icon">${icon("gauge", 18)}</span>
       <span class="readiness-title">Forme du jour</span>
+      ${READINESS_INFO}
     </div>
     <div class="readiness-main">
       <div class="readiness-gauge">
@@ -242,4 +250,5 @@ function render() {
       ${comps.map((c) => signalBar(c.label, c.score)).join("")}
     </div>
   `;
+  wireInfoPops(card);
 }

@@ -12,6 +12,13 @@ import { api } from "./api.js";
 import { icon } from "./icons.js";
 import { renderLineChart } from "./charts.js";
 import { buildDailyLoad, computeAcwr, acwrTrend, ACWR_CHRONIC_DAYS } from "./training-load.js";
+import { infoPop, wireInfoPops } from "./info-pop.js";
+
+const ACWR_INFO = infoPop(
+  "ACWR — charge aiguë / chronique",
+  `<p>Rapport entre ta charge des <b>7 derniers jours</b> et ta charge moyenne des <b>4 dernières semaines</b>.</p>` +
+  `<p><b>0,8 à 1,3</b> : progression maîtrisée. <b>Au-delà de 1,5</b> : montée de charge trop rapide, risque de blessure accru.</p>`
+);
 
 const HISTORY_PAGE = 40;   // taille de page du fetch dédié
 const MAX_PAGES = 6;       // garde-fou : ≤ 240 séances
@@ -85,6 +92,7 @@ export function renderAcwrCard(card, workouts) {
       <span class="tile-icon">${icon("activity", 18)}</span>
       <span class="acwr-title">Charge &amp; risque</span>
       <span class="acwr-sub-range">${totalDays} j d'historique</span>
+      ${ACWR_INFO}
     </div>
     <div class="acwr-main">
       <div class="acwr-figure">
@@ -114,6 +122,7 @@ export function renderAcwrCard(card, workouts) {
     trend.map((p) => ({ label: fmtDate(p.date), value: p.ratio })),
     { color, formatValue: (v) => v.toFixed(2).replace(".", ",") }
   );
+  wireInfoPops(card);
 }
 
 export async function loadAcwr() {

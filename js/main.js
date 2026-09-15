@@ -6,12 +6,14 @@ import { api } from "./api.js";
 import { initEvolutionTab, renderEvolution } from "./evolution.js";
 import { initRouteEditor } from "./route-editor.js";
 import { initOverviewMap } from "./overview-map.js";
+import { initCollapsibles } from "./collapse.js";
 import "./workout-detail.js"; // câble le tiroir de détail (backdrop, Échap)
 import "./workouts.js"; // câble le bouton "charger plus de séances"
 
 initTheme();
 initAuth();
 initEvolutionTab();
+initCollapsibles();
 
 // --- Sidebar réductible --------------------------------------------------
 
@@ -43,6 +45,7 @@ const tabButtons = document.querySelectorAll(".tab-btn");
 const tabPanels = {
   evolution: document.getElementById("tab-evolution"),
   tracking: document.getElementById("tab-tracking"),
+  sessions: document.getElementById("tab-sessions"),
   itinerary: document.getElementById("tab-itinerary"),
   overview: document.getElementById("tab-overview"),
 };
@@ -51,7 +54,11 @@ tabButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const tab = btn.dataset.tab;
     if (btn.classList.contains("active")) return;
-    tabButtons.forEach((b) => b.classList.toggle("active", b === btn));
+    tabButtons.forEach((b) => {
+      const on = b === btn;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", String(on));
+    });
     Object.entries(tabPanels).forEach(([name, panel]) => {
       panel.style.display = name === tab ? "block" : "none";
       panel.classList.remove("enter");

@@ -113,7 +113,9 @@ function axisTime(sec, useHours) {
 // Graphe en barres empilées : une colonne par semaine, segments Z1 (bas) → Z5
 // (haut), hauteur proportionnelle au temps total de la semaine.
 function renderStackedBars(container, weeks) {
-  const width = Math.max(container.clientWidth || 320, 240);
+  // Largeur logique fixe : le SVG est responsive via viewBox + width:100%, donc
+  // il reste correct même rendu dans une section repliée (largeur mesurée nulle).
+  const width = 600;
   const height = 190;
   const padTop = 14, padBottom = 26, padRight = 8;
 
