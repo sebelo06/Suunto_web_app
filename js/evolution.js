@@ -209,7 +209,7 @@ function renderEvoMetricPicker() {
   const el = document.getElementById("evo-metric-picker");
   if (!el) return;
   el.innerHTML = Object.entries(EVO_METRICS)
-    .map(([key, m]) => `<button type="button" class="evo-metric-chip ${evoMetrics.includes(key) ? "active" : ""}" data-metric="${key}">${m.label}</button>`)
+    .map(([key, m]) => `<button type="button" class="evo-metric-chip ${evoMetrics.includes(key) ? "active" : ""}" aria-pressed="${evoMetrics.includes(key)}" data-metric="${key}">${m.label}</button>`)
     .join("");
   el.querySelectorAll(".evo-metric-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -243,11 +243,11 @@ function renderEvoSportPicker() {
   }
 
   const chips = [
-    `<button type="button" class="evo-sport-chip ${evoSport === "all" ? "active" : ""}" data-sport="all">Tous les sports</button>`,
+    `<button type="button" class="evo-sport-chip ${evoSport === "all" ? "active" : ""}" aria-pressed="${evoSport === "all"}" data-sport="all">Tous les sports</button>`,
     ...sports.map((id) => {
       const label = ACTIVITY_NAMES[id] || `Sport ${id}`;
       const iconName = ACTIVITY_ICONS[id] || "medal";
-      return `<button type="button" class="evo-sport-chip ${evoSport === String(id) ? "active" : ""}" data-sport="${id}">${icon(iconName, 14)}${label}</button>`;
+      return `<button type="button" class="evo-sport-chip ${evoSport === String(id) ? "active" : ""}" aria-pressed="${evoSport === String(id)}" data-sport="${id}">${icon(iconName, 14)}${label}</button>`;
     }),
   ];
   el.innerHTML = chips.join("");
@@ -256,7 +256,11 @@ function renderEvoSportPicker() {
     btn.addEventListener("click", () => {
       evoSport = btn.dataset.sport;
       writeStoredEvoSport(evoSport);
-      el.querySelectorAll(".evo-sport-chip").forEach((b) => b.classList.toggle("active", b === btn));
+      el.querySelectorAll(".evo-sport-chip").forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
       renderEvolution();
     });
   });
@@ -346,11 +350,17 @@ export async function loadEvolutionData() {
 
 export function initEvolutionTab() {
   document.querySelectorAll(".evo-period-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.period === evoPeriod);
+    const initOn = btn.dataset.period === evoPeriod;
+    btn.classList.toggle("active", initOn);
+    btn.setAttribute("aria-pressed", String(initOn));
     btn.addEventListener("click", () => {
       evoPeriod = btn.dataset.period;
       writeStoredEvoPeriod(evoPeriod);
-      document.querySelectorAll(".evo-period-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".evo-period-btn").forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
       renderEvolution();
     });
   });

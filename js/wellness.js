@@ -1,13 +1,8 @@
 // js/wellness.js
 import { api } from "./api.js";
-import { icon } from "./icons.js";
-import { escapeHtml } from "./dom.js";
-import { formatDuration } from "./format.js";
 import { renderLineChart } from "./charts.js";
-import { refreshWeekTile } from "./workouts.js";
 import { updateReadinessWellness } from "./readiness.js";
-
-const wellnessTiles = document.getElementById("wellness-tiles");
+import { updateKpiData } from "./kpi.js";
 
 // Même principe que renderTrendChart, pour la durée de sommeil des
 // dernières nuits (triées du plus ancien au plus récent).
@@ -52,30 +47,8 @@ export async function loadWellness() {
       sleepQuality: lastNight?.quality ?? null,
     });
 
-    wellnessTiles.innerHTML = `
-      <div class="stat-tile featured" style="--tile-accent: var(--signal);">
-        <span class="tile-icon">${icon("zap", 18)}</span>
-        <div class="value">${lastRecovery?.balance != null ? Math.round(lastRecovery.balance * 100) + "%" : "—"}</div>
-        <div class="label">Récupération</div>
-      </div>
-      <div class="stat-tile" style="--tile-accent: var(--route);">
-        <span class="tile-icon">${icon("moon", 18)}</span>
-        <div class="value">${lastNight ? formatDuration(lastNight.duration) : "—"}</div>
-        <div class="label">Sommeil (dernière nuit)</div>
-      </div>
-      <div class="stat-tile" style="--tile-accent: var(--accent-gold);">
-        <span class="tile-icon">${icon("sparkles", 18)}</span>
-        <div class="value">${lastNight?.quality != null ? Math.round(lastNight.quality * 100) + "%" : "—"}</div>
-        <div class="label">Qualité de sommeil</div>
-      </div>
-      <div class="stat-tile" id="week-tile" style="--tile-accent: var(--accent-sky);">
-        <span class="tile-icon">${icon("calendar", 18)}</span>
-        <div class="value">—</div>
-        <div class="label">Cette semaine</div>
-      </div>
-    `;
-    refreshWeekTile();
+    updateKpiData({ recovery: lastRecovery ?? null, sleepNight: lastNight ?? null });
   } catch (err) {
-    wellnessTiles.innerHTML = `<div class="empty"><span class="empty-icon">${icon("alertTriangle", 28)}</span>${escapeHtml(err.message)}</div>`;
+    updateKpiData({ error: err.message });
   }
 }

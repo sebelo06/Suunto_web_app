@@ -16,10 +16,11 @@
     --panel-line-strong: #D2D8E2;
     --ink: #161A23;
     --muted: #5A6472;
-    --muted-2: #98A1B0;
+    --muted-2: #6B7280;                  /* gris meta — ≥ 4.5:1 sur panel/bg (texte lisible) */
 
     /* Accent principal — orange Suunto */
-    --signal: #E8421E;                   /* orange Suunto — accent principal */
+    --signal: #E8421E;                   /* orange Suunto — accent principal (remplissages / icônes / bordures) */
+    --signal-text: #C5330F;              /* orange assombri pour l'orange EN TEXTE — ≥ 4.5:1 sur clair */
     --signal-2: #FF6A3D;                 /* orange clair — second point de dégradé */
     --signal-ink: #FFFFFF;
     --signal-soft: color-mix(in oklch, var(--signal) 13%, transparent);
@@ -48,7 +49,8 @@
     --mono: "Inter", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     --display: "Inter", var(--sans);
-    --ease: cubic-bezier(.2,.8,.2,1);
+    --ease: cubic-bezier(.2,.8,.2,1);           /* entrées / sorties — démarre vif */
+    --ease-in-out: cubic-bezier(.77,0,.175,1);  /* déplacements / morphs sur place */
   }
 
   /* Thème sombre — surcharge des neutres, de l'accent et des ombres.
@@ -65,10 +67,11 @@
     --panel-line-strong: #3D444D;
     --ink: #F0F6FC;
     --muted: #8B949E;
-    --muted-2: #545D68;
+    --muted-2: #858F9C;                  /* gris meta — ≥ 4.5:1 sur panel/bg sombre */
 
     --signal: #E8421E;                   /* orange Suunto */
     --signal-2: #FF6A3D;                 /* orange clair */
+    --signal-text: #E8421E;              /* sur fond sombre l'orange vif passe déjà en texte */
     --route: #3FB950;
     --accent-gold: #D29922;
     --accent-sky: #58A6FF;
@@ -90,9 +93,10 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
 
   :focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 35%, transparent);
-    border-radius: var(--radius-sm);
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
+    /* Un anneau plein orange plutôt qu'un box-shadow à 35 % : ce dernier
+       tombait à ~1.6:1 sur les cartes claires (sous le 3:1 requis). */
   }
 
   .icon {
@@ -119,7 +123,6 @@
       radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--signal) 9%, transparent), transparent 42%),
       radial-gradient(circle at 92% 88%, color-mix(in srgb, var(--route) 7%, transparent), transparent 48%);
     background-attachment: fixed;
-    transition: background-color 0.15s, color 0.15s;
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.011em;
   }
@@ -214,7 +217,7 @@
     transition: color 0.15s var(--ease), background-color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .theme-switch button:hover { color: var(--ink); }
-  .theme-switch button:active { transform: scale(0.9); }
+  .theme-switch button:active { transform: scale(0.94); }
   .theme-switch button.active {
     background: var(--bg-elevated);
     color: var(--signal);
@@ -511,6 +514,90 @@
   }
   .block-head .section-hint { font-weight: 500; font-size: 12px; color: var(--muted); }
 
+  /* Sections repliables : l'en-tête devient un bouton, le corps se déploie. */
+  .block-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    font: inherit; letter-spacing: inherit; color: inherit; text-align: left;
+  }
+  .block-toggle:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 4px; }
+  .block-chevron {
+    width: 15px; height: 15px; flex: none; color: var(--muted);
+    transform: rotate(90deg); transition: transform 0.25s var(--ease-in-out);
+  }
+  .dash-block.collapsed .block-chevron { transform: rotate(0deg); }
+  .block-toggle:hover .block-chevron { color: var(--ink); }
+  /* Corps : grille 0fr↔1fr → hauteur animée, largeur conservée (rendu SVG sûr). */
+  .dash-block-body {
+    display: grid; grid-template-rows: 1fr;
+    transition: grid-template-rows 0.28s var(--ease-in-out);
+  }
+  .dash-block.collapsed .dash-block-body { grid-template-rows: 0fr; }
+  .dash-block-body-inner {
+    overflow: hidden; min-height: 0;
+    transition: opacity 0.2s var(--ease), visibility 0.2s var(--ease);
+  }
+  .dash-block.collapsed .dash-block-body-inner { opacity: 0; visibility: hidden; }
+  @media (prefers-reduced-motion: reduce) {
+    .dash-block-body, .dash-block-body-inner, .block-chevron { transition: none; }
+    /* Coupe le shimmer infini des placeholders (animation en lecture auto). */
+    .skeleton { animation: none; }
+  }
+
+  /* Infobulle « c'est quoi ? » sur une métrique avancée (ACWR, forme du jour…). */
+  .info-pop-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--muted-2); cursor: help;
+    padding: 3px; margin-left: 4px; border-radius: var(--radius-full);
+    transition: color 0.15s var(--ease), background 0.15s var(--ease);
+  }
+  .readiness-head .info-pop-btn { margin-left: auto; }
+  .info-pop-btn:hover, .info-pop-btn[aria-expanded="true"] { color: var(--ink); background: var(--panel-2); }
+  .info-pop-btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .info-pop {
+    position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; left: auto;
+    width: max-content; max-width: min(300px, calc(100vw - 48px));
+    background: var(--bg-elevated); border: 1px solid var(--panel-line-strong);
+    border-radius: var(--radius-md); padding: 12px 14px;
+    box-shadow: 0 12px 32px -8px oklch(10% 0.01 40 / 0.5);
+    font-size: 12px; line-height: 1.55; color: var(--muted);
+    text-align: left; font-weight: 400;
+    /* Jaillit de son ancre (bouton « i », en haut à droite) */
+    transform-origin: top right;
+    transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+    @starting-style { opacity: 0; transform: scale(0.96); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .info-pop, .dc-info-pop { transition: opacity 0.15s var(--ease); }
+    .info-pop, .dc-info-pop { transform: none; }
+    .info-pop { @starting-style { transform: none; } }
+    .dc-info-pop { @starting-style { transform: none; } }
+  }
+  .info-pop::before {
+    content: ""; position: absolute; top: -6px; right: 14px; width: 11px; height: 11px;
+    background: var(--bg-elevated); border-left: 1px solid var(--panel-line-strong);
+    border-top: 1px solid var(--panel-line-strong); transform: rotate(45deg);
+  }
+  .info-pop-title { font-family: var(--sans); font-weight: 700; font-size: 12.5px; color: var(--ink); margin-bottom: 6px; }
+  .info-pop p { margin: 0 0 6px; }
+  .info-pop p:last-child { margin-bottom: 0; }
+  .info-pop b { color: var(--ink); font-weight: 600; }
+  /* L'en-tête ancre le panneau ; la carte laisse déborder l'infobulle et,
+     panneau ouvert, passe au-dessus des cartes voisines de la grille. */
+  .acwr-head, .readiness-head { position: relative; }
+  .card.acwr-card, .card.readiness-card { position: relative; overflow: visible; }
+  .card.acwr-card:has(.info-pop-btn[aria-expanded="true"]),
+  .card.readiness-card:has(.info-pop-btn[aria-expanded="true"]) { z-index: 20; }
+
+  /* Onglet Suivi à plat : plus de sections repliables, les groupes de cartes
+     s'enchaînent verticalement avec un rythme régulier. La grille KPI et le
+     bouton d'ajout ouvrent la page. */
+  .tracking-flat {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
   /* Aujourd'hui : forme du jour mise en avant, tuiles bien-être à côté. */
   .today-grid {
     display: grid;
@@ -548,7 +635,7 @@
     font-family: var(--mono);
     font-size: 12px;
     font-weight: 500;
-    color: var(--signal);
+    color: var(--signal-text);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     order: 2;
@@ -610,12 +697,13 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-card);
     cursor: pointer;
-    transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+    transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .workout-row:hover {
     background: var(--panel-2);
     border-color: var(--panel-line-strong);
   }
+  .workout-row:active { transform: scale(0.99); }
   .workout-row .workout-row-main { flex: 1; min-width: 0; }
   .workout-row-metrics {
     display: flex;
@@ -675,7 +763,9 @@
   .workout-activity { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; color: var(--ink); }
   .workout-date { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
   .workout-chevron { flex-shrink: 0; color: var(--muted); opacity: 0.6; transition: transform 0.15s var(--ease), opacity 0.15s var(--ease); display: flex; }
-  .workout-row:hover .workout-chevron { opacity: 1; transform: translateX(2px); color: var(--signal); }
+  @media (hover: hover) and (pointer: fine) {
+    .workout-row:hover .workout-chevron { opacity: 1; transform: translateX(2px); color: var(--signal); }
+  }
 
   .stat-grid {
     display: grid;
@@ -692,7 +782,9 @@
     overflow: hidden;
     transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), border-color 0.15s var(--ease);
   }
-  .stat-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--panel-line-strong); }
+  @media (hover: hover) and (pointer: fine) {
+    .stat-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--panel-line-strong); }
+  }
   .stat-tile .tile-icon {
     width: 30px;
     height: 30px;
@@ -741,6 +833,108 @@
     .wellness-grid { grid-template-columns: 1fr 1fr; }
     .stat-tile.featured { grid-column: 1 / -1; }
   }
+
+  /* Tuile « + » d'ajout / retrait de KPI : même gabarit qu'une tuile, mais
+     en pointillés pour signaler l'action plutôt qu'une donnée. */
+  .kpi-add-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    background: transparent;
+    border: 1px dashed var(--panel-line-strong);
+    box-shadow: none;
+    cursor: pointer;
+    color: var(--muted);
+    text-align: left;
+    font: inherit;
+  }
+  .kpi-add-tile .tile-icon { background: color-mix(in srgb, var(--muted) 14%, transparent); margin-bottom: 8px; }
+  .kpi-add-tile .tile-icon .icon { color: var(--muted); }
+  .kpi-add-tile .label { color: var(--muted); }
+  @media (hover: hover) and (pointer: fine) {
+    .kpi-add-tile:hover { border-color: var(--signal); color: var(--signal-text); transform: translateY(-2px); }
+    .kpi-add-tile:hover .tile-icon { background: var(--signal-soft); }
+    .kpi-add-tile:hover .tile-icon .icon,
+    .kpi-add-tile:hover .label { color: var(--signal-text); }
+  }
+  .kpi-add-tile[aria-expanded="true"] { border-color: var(--signal); border-style: solid; }
+
+  /* Panneau de configuration : occupe toute la largeur de la grille de tuiles. */
+  .kpi-config-panel {
+    grid-column: 1 / -1;
+    background: var(--panel);
+    border: 1px solid var(--panel-line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lift);
+    padding: 12px;
+    animation: kpi-panel-in 0.16s var(--ease);
+  }
+  @keyframes kpi-panel-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .kpi-config-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 2px 4px 10px;
+    border-bottom: 1px solid var(--panel-line);
+    margin-bottom: 8px;
+  }
+  .kpi-config-count { color: var(--muted); font-weight: 500; }
+  .kpi-config-close {
+    margin-left: auto;
+    display: flex;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 2px;
+    border-radius: 6px;
+  }
+  .kpi-config-close:hover { color: var(--ink); background: var(--panel-line); }
+  .kpi-config-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 4px;
+  }
+  .kpi-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.12s var(--ease);
+  }
+  .kpi-option:hover { background: var(--panel-line); }
+  .kpi-option input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .kpi-option-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    background: color-mix(in srgb, var(--tile-accent, var(--signal)) 16%, transparent);
+  }
+  .kpi-option-icon .icon { color: var(--tile-accent, var(--signal)); }
+  .kpi-option-name { flex: 1; font-size: 13px; color: var(--ink); font-weight: 500; }
+  .kpi-option-check {
+    display: flex;
+    color: var(--signal);
+    opacity: 0;
+    transition: opacity 0.12s var(--ease);
+  }
+  .kpi-option input:checked ~ .kpi-option-check { opacity: 1; }
+  .kpi-option.is-disabled { cursor: not-allowed; opacity: 0.45; }
+  .kpi-option.is-disabled:hover { background: transparent; }
 
   /* Analyse : colonne principale (tendance distance + régularité) plus
      large que la colonne secondaire (sommeil + prédiction), pour casser
@@ -803,7 +997,9 @@
     cursor: default;
     transition: transform 0.1s var(--ease);
   }
-  .heatmap-cell:hover { transform: scale(1.15); }
+  @media (hover: hover) and (pointer: fine) {
+    .heatmap-cell:hover { transform: scale(1.15); }
+  }
   .heatmap-cell.level-1 { background: color-mix(in srgb, var(--signal) 30%, var(--panel-line)); }
   .heatmap-cell.level-2 { background: color-mix(in srgb, var(--signal) 55%, var(--panel-line)); }
   .heatmap-cell.level-3 { background: color-mix(in srgb, var(--signal) 78%, var(--panel-line)); }
@@ -1079,9 +1275,10 @@
     padding: 7px 14px;
     border-radius: var(--radius-full);
     cursor: pointer;
-    transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+    transition: border-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .detail-header button:hover { color: var(--ink); border-color: var(--panel-line-strong); }
+  .detail-header button:active { transform: scale(0.97); }
 
   .route-map {
     display: block;
@@ -1156,7 +1353,7 @@
     gap: 10px;
     background: var(--panel);
     border: 1px solid var(--panel-line);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-md);
     padding: 12px 14px;
     margin-bottom: 14px;
   }
@@ -1274,7 +1471,7 @@
   .dc-half {
     flex: 1; display: flex; flex-direction: column; gap: 3px;
     padding: 10px 12px; background: var(--panel);
-    border: 1px solid var(--panel-line); border-radius: var(--radius-m);
+    border: 1px solid var(--panel-line); border-radius: var(--radius-md);
   }
   .dc-half-tag {
     font-family: var(--mono); font-size: 10px; text-transform: uppercase;
@@ -1301,9 +1498,13 @@
     position: absolute; z-index: 20; top: 46px; right: 16px; left: 16px;
     max-width: 380px; margin-left: auto;
     background: var(--bg-elevated); border: 1px solid var(--panel-line-strong);
-    border-radius: var(--radius-m); padding: 14px 16px;
+    border-radius: var(--radius-md); padding: 14px 16px;
     box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.45);
     font-size: 12px; line-height: 1.55; color: var(--muted);
+    /* Jaillit de son ancre (bouton « i », en haut à droite) */
+    transform-origin: top right;
+    transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+    @starting-style { opacity: 0; transform: scale(0.96); }
   }
   .dc-info-pop::before {
     content: ""; position: absolute; top: -6px; right: 18px; width: 11px; height: 11px;
@@ -1484,13 +1685,14 @@
     cursor: pointer;
     white-space: nowrap;
     text-align: left;
-    transition: background 0.15s var(--ease), color 0.15s var(--ease);
+    transition: background-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .tab-btn .icon { width: 16px; height: 16px; flex-shrink: 0; }
   .tab-btn .tab-label { overflow: hidden; text-overflow: ellipsis; }
   .tab-btn:hover:not(.active) { color: var(--ink); background: var(--panel-2); }
+  .tab-btn:active { transform: scale(0.97); }
   .tab-btn.active {
-    color: var(--signal);
+    color: var(--signal-text);
     background: var(--signal-soft);
   }
 
@@ -1512,7 +1714,7 @@
     white-space: nowrap;
   }
   .sidebar-toggle:hover { color: var(--ink); }
-  .sidebar-toggle .icon { width: 15px; height: 15px; flex-shrink: 0; transition: transform 0.2s var(--ease); }
+  .sidebar-toggle .icon { width: 15px; height: 15px; flex-shrink: 0; transition: transform 0.2s var(--ease-in-out); }
   .sidebar.collapsed .sidebar-toggle .icon { transform: rotate(180deg); }
 
   .sidebar.collapsed .tab-btn,
@@ -1596,9 +1798,10 @@
     padding: 7px 15px;
     border-radius: var(--radius-full);
     cursor: pointer;
-    transition: background 0.15s var(--ease), color 0.15s var(--ease);
+    transition: background-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .evo-period-btn:hover:not(.active) { color: var(--ink); }
+  .evo-period-btn:active { transform: scale(0.96); }
   .evo-period-btn.active { color: var(--signal-ink); background: var(--signal); }
 
   .evo-sport-switch { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -1615,11 +1818,12 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    transition: border-color 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease);
+    transition: border-color 0.15s var(--ease), color 0.15s var(--ease), background-color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .evo-sport-chip:hover:not(.active) { color: var(--ink); }
+  .evo-sport-chip:active { transform: scale(0.96); }
   .evo-sport-chip.active {
-    color: var(--signal);
+    color: var(--signal-text);
     border-color: color-mix(in srgb, var(--signal) 45%, var(--panel-line));
     background: var(--signal-soft);
   }
@@ -1635,9 +1839,10 @@
     padding: 7px 13px;
     border-radius: var(--radius-full);
     cursor: pointer;
-    transition: border-color 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease);
+    transition: border-color 0.15s var(--ease), color 0.15s var(--ease), background-color 0.15s var(--ease), transform 0.1s var(--ease);
   }
   .evo-metric-chip:hover:not(.active) { color: var(--ink); }
+  .evo-metric-chip:active { transform: scale(0.96); }
   .evo-metric-chip.active {
     color: var(--route);
     border-color: color-mix(in srgb, var(--route) 45%, var(--panel-line));
