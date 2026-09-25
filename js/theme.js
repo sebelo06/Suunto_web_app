@@ -1,17 +1,20 @@
 // js/theme.js
 import { state } from "./state.js";
 
-const TILE_URLS = {
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  light: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-};
+// Fond de carte principal : OpenStreetMap standard, gratuit et SANS clé API.
+// (CARTO a supprimé son fond gratuit ; ses tuiles renvoient désormais une
+// image « API key required ».) Le thème sombre est obtenu côté CSS via un
+// filtre appliqué à la classe « base-tiles » quand data-theme="dark" ; on ne
+// change donc plus l'URL selon le thème.
+const BASE_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-function makeBaseTileLayer(theme) {
-  return L.tileLayer(TILE_URLS[theme] || TILE_URLS.dark, {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 20,
-    maxNativeZoom: 20,
+function makeBaseTileLayer() {
+  return L.tileLayer(BASE_TILE_URL, {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: "abc",
+    maxZoom: 19,
+    maxNativeZoom: 19,
+    className: "base-tiles",
   });
 }
 
@@ -30,6 +33,9 @@ function makeSportTileLayer() {
     subdomains: "abc",
     maxZoom: 20,
     maxNativeZoom: 20,
+    // Comme le fond par défaut, on laisse le filtre CSS « base-tiles »
+    // l'assombrir en thème sombre.
+    className: "base-tiles",
   });
 }
 
@@ -42,15 +48,15 @@ function makeOsmTileLayer() {
   });
 }
 
-export function addTileLayer(map, theme) {
-  const base = makeBaseTileLayer(theme).addTo(map);
+export function addTileLayer(map) {
+  const base = makeBaseTileLayer();
   const topo = makeTopoTileLayer();
-  const sport = makeSportTileLayer();
+  const sport = makeSportTileLayer().addTo(map); // CyclOSM : fond par défaut
   const osm = makeOsmTileLayer();
   L.control
-    .layers({ Carte: base, "Course/Vélo": sport, Relief: topo, OpenStreetMap: osm }, null, { position: "topright", collapsed: true })
+    .layers({ "Course/Vélo": sport, Carte: base, Relief: topo, OpenStreetMap: osm }, null, { position: "topright", collapsed: true })
     .addTo(map);
-  return base;
+  return sport;
 }
 
 // --- Gestion du thème : clair / sombre / système -------------------------
@@ -77,13 +83,11 @@ function resolveTheme(pref) {
   return darkMedia.matches ? "dark" : "light";
 }
 
-// Met à jour les tuiles des cartes déjà instanciées quand le thème change.
-function refreshMapTiles(theme) {
-  const url = TILE_URLS[theme] || TILE_URLS.dark;
-  [state.currentTileLayer, state.editorTileLayer, state.overviewTileLayer].forEach((layer) => {
-    if (layer && typeof layer.setUrl === "function") layer.setUrl(url);
-  });
-}
+// Le fond de carte de base est identique en clair et en sombre : c'est un
+// filtre CSS (voir « .base-tiles » dans styles.css, actif sous
+// data-theme="dark") qui l'assombrit. Rien à recharger côté tuiles au
+// changement de thème — data-theme est déjà posé sur <html> par applyTheme.
+function refreshMapTiles() {}
 
 // Reflète la préférence active dans le sélecteurs de thème.
 function syncSwitch(pref) {
