@@ -1,0 +1,40 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#191d26"/>
+      <stop offset="1" stop-color="#0d0f14"/>
+    </linearGradient>
+    <linearGradient id="track" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#E8421E"/>
+      <stop offset="1" stop-color="#FF7A4D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FF8659" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FF8659" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="26" flood-color="#E8421E" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Fond arrondi -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#bg)"/>
+  <!-- Liseré interne subtil -->
+  <rect x="8" y="8" width="1008" height="1008" rx="220" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="2"/>
+
+  <!-- Halo derrière le sommet -->
+  <circle cx="720" cy="330" r="230" fill="url(#glow)"/>
+
+  <!-- Ligne d'horizon / sol -->
+  <line x1="150" y1="800" x2="874" y2="800" stroke="#ffffff" stroke-opacity="0.10" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Tracé GPS qui grimpe (route + dénivelé) -->
+  <path d="M 168 792 L 330 636 L 470 700 L 636 452 L 720 330"
+        fill="none" stroke="url(#track)" stroke-width="58"
+        stroke-linecap="round" stroke-linejoin="round" filter="url(#soft)"/>
+
+  <!-- Nœuds de départ et sommet -->
+  <circle cx="168" cy="792" r="30" fill="#0d0f14" stroke="url(#track)" stroke-width="20"/>
+  <circle cx="720" cy="330" r="54" fill="#0d0f14" stroke="url(#track)" stroke-width="26"/>
+  <circle cx="720" cy="330" r="16" fill="#FF7A4D"/>
+</svg>
