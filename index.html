@@ -258,16 +258,38 @@
 
             <div class="block-head"><h2>Créer un itinéraire</h2><span class="section-hint">Clique sur la carte pour tracer, puis exporte en GPX</span></div>
             <div class="card" style="padding:0;">
-              <div class="editor-map" id="editor-map"></div>
-              <p class="editor-hint">Clique sur la carte pour placer des points. Le tracé se construit dans l'ordre des clics. L'export GPX interpole le parcours tous les ~30 m et ajoute l'altitude à chaque point.</p>
-              <div class="editor-toolbar">
-                <input type="text" id="route-name" placeholder="Nom de l'itinéraire" value="Mon itinéraire" />
+              <p class="editor-hint editor-hint-top">Clique sur la carte pour placer des points. Le tracé suit automatiquement les chemins selon le sport choisi. L'altitude et le dénivelé sont calculés en même temps que l'alignement.</p>
+              <div class="editor-toolbar editor-toolbar-top">
+                <select id="editor-activity" aria-label="Sport">
+                  <option value="hiking">Randonnée</option>
+                  <option value="walking">Marche</option>
+                  <option value="running">Trail / course</option>
+                  <option value="cycling-road">Vélo route</option>
+                  <option value="cycling-mountain">VTT</option>
+                </select>
                 <button id="editor-undo" disabled>Annuler le dernier point</button>
                 <button id="editor-clear" disabled>Effacer tout</button>
                 <button id="editor-snap" disabled><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9 16.2 7.8"/></svg>Aligner sur les chemins</button>
-                <button id="editor-download" class="primary-outline" disabled>Télécharger en GPX</button>
               </div>
+              <div class="editor-map" id="editor-map"></div>
               <p class="editor-hint" id="editor-snap-status" style="display:none;"></p>
+              <div class="route-stats" id="route-stats" hidden>
+                <div class="stat-grid route-stat-grid" id="route-stat-tiles"></div>
+                <figure class="route-elevation" id="route-elevation">
+                  <figcaption class="route-elevation-head">
+                    <span>Profil altimétrique</span>
+                    <span class="route-elevation-range" id="route-elevation-range"></span>
+                  </figcaption>
+                  <div class="route-elevation-plot" id="route-elevation-plot"></div>
+                </figure>
+              </div>
+              <div class="editor-export">
+                <input type="text" id="route-name" placeholder="Nom de l'itinéraire" value="Mon itinéraire" />
+                <button id="editor-download" class="primary-outline" disabled>
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Télécharger en GPX
+                </button>
+              </div>
             </div>
 
           </div>

@@ -27,7 +27,7 @@ js/                    Un module par responsabilité (api, auth, workouts,
 
 ```bash
 npm install
-cp .env.example .env   # puis renseigne SESSION_SECRET, ORS_API_KEY, etc.
+cp .env.example .env   # puis renseigne SESSION_SECRET, etc.
 ```
 
 ## Lancement
@@ -52,7 +52,7 @@ si le backend tourne ailleurs qu'en local.
 | GET     | `/api/workouts?limit=20` | Dernières séances de l'utilisateur connecté |
 | GET     | `/api/wellness/sleep`    | Données de sommeil                        |
 | GET     | `/api/wellness/recovery` | Récupération / stress                     |
-| POST    | `/api/route/snap`        | `{ points: [{lat,lng}] }` → aligne l'itinéraire sur les chemins (OpenRouteService) |
+| POST    | `/api/route/snap`        | `{ points: [{lat,lng}], activityType }` → aligne l'itinéraire sur les chemins (BRouter) |
 
 Toutes les routes `/api/*` (sauf login) nécessitent le cookie de session
 renvoyé par `/api/login` — le frontend doit envoyer les requêtes avec
@@ -60,15 +60,11 @@ renvoyé par `/api/login` — le frontend doit envoyer les requêtes avec
 
 ### Snap-to-road
 
-`/api/route/snap` s'appuie sur l'API [OpenRouteService](https://openrouteservice.org/dev/#/signup)
-(gratuite, ~2000 requêtes/jour). Crée un compte, récupère ta clé, puis :
-
-```bash
-export ORS_API_KEY="ta-clé-ors"
-```
-
-Sans cette variable, le bouton "Aligner sur les chemins" de l'éditeur
-d'itinéraire renvoie une erreur explicite plutôt que de planter.
+`/api/route/snap` s'appuie sur [BRouter](https://brouter.de/) (routeur OSM
+public, gratuit et **sans clé**) : aucune configuration n'est nécessaire. Le
+profil de routage est choisi selon `activityType` (randonnée, marche, trail,
+vélo route, VTT), et l'altitude et le dénivelé (D+) sont renvoyés dans la même
+réponse — l'export GPX n'a donc pas besoin d'un service d'altitude séparé.
 
 ## Sécurité en place
 

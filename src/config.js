@@ -29,5 +29,4 @@ module.exports = {
   PORT: process.env.PORT || 3000,
   FRONTEND_ORIGIN: FRONTEND_ORIGINS,
   SESSION_SECRET,
-  ORS_API_KEY: process.env.ORS_API_KEY,
 };
