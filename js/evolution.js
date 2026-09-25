@@ -8,6 +8,7 @@ import { icon, ACTIVITY_NAMES, ACTIVITY_ICONS } from "./icons.js";
 import { escapeHtml } from "./dom.js";
 import { formatDuration, formatPaceValue } from "./format.js";
 import { renderLineChart } from "./charts.js";
+import { readHrZoneThresholds } from "./training-load.js";
 
 function aggDistance(items) { return items.reduce((s, w) => s + (w.totalDistance || 0), 0) / 1000; }
 function aggCount(items) { return items.length; }
@@ -120,6 +121,27 @@ function aggVo2max(items) {
   return values.reduce((s, v) => s + v, 0) / values.length;
 }
 
+// Efficience aérobie (Efficiency Factor) : vitesse ÷ FC, restreinte aux
+// séances majoritairement en Z2 (FC moyenne dans la bande d'endurance de base).
+// À FC comparable, une valeur qui monte au fil des semaines = l'allure tenue
+// s'améliore = endurance de base qui progresse.
+function aggAerobicEfficiency(items) {
+  const [z2lo, z2hi] = readHrZoneThresholds(); // bornes Z2 en % de FCmax (ex. 60 et 70)
+  const runs = evoSport === "all" ? items.filter((w) => w.activityId === 1) : items;
+  const values = [];
+  for (const w of runs) {
+    const avgHr = w.hrdata?.workoutAvgHR;
+    const maxHr = workoutMaxHr(w);
+    if (!w.totalDistance || !w.totalTime || !avgHr || !maxHr) continue;
+    const frac = (avgHr / maxHr) * 100;
+    if (frac < z2lo || frac > z2hi) continue; // on ne garde que le vrai endurance Z2
+    const speedMPerMin = w.totalDistance / (w.totalTime / 60);
+    values.push(speedMPerMin / avgHr); // m/min par battement
+  }
+  if (!values.length) return null;
+  return values.reduce((s, v) => s + v, 0) / values.length;
+}
+
 const EVO_METRICS = {
   distance: { label: "Distance", color: "#ff6a3d", compute: aggDistance, format: (v) => v.toFixed(1) + " km", higherIsBetter: true },
   count: { label: "Séances", color: "#4fa3c9", compute: aggCount, format: (v) => String(v), higherIsBetter: true },
@@ -128,6 +150,7 @@ const EVO_METRICS = {
   hr: { label: "FC moyenne", color: "#e5484d", compute: aggHr, format: (v) => Math.round(v) + " bpm", higherIsBetter: false },
   ascent: { label: "Dénivelé +", color: "#ff9c4a", compute: aggAscent, format: (v) => Math.round(v) + " m", higherIsBetter: true },
   vo2max: { label: "VO2max effectif", color: "#8e6fe8", compute: aggVo2max, format: (v) => v.toFixed(1) + " ml/kg/min", higherIsBetter: true },
+  aerobicEff: { label: "Efficience aérobie", color: "#3dd68c", compute: aggAerobicEfficiency, format: (v) => v.toFixed(2) + " m/min/bpm", higherIsBetter: true },
 };
 const EVO_PERIOD_COUNT = 8;
 const EVO_PERIOD_LABELS = { week: "semaine", month: "mois", year: "année" };
