@@ -39,7 +39,7 @@ async function loadOverviewRoutes() {
       const points = decodePolyline(w.polyline).map(([lat, lng]) => [lat, lng]);
       if (points.length < 2) return;
       L.polyline(points, {
-        color: "#ff6a3d",
+        color: "#7c3aed",
         weight: 2.5,
         opacity: 0.16,
         lineCap: "round",

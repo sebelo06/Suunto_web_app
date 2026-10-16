@@ -9,7 +9,7 @@
 // d'historique : la fenêtre 365 j demande bien plus de profondeur que les 20
 // séances de la liste. Le fetch s'arrête dès que l'historique est assez
 // profond, assez ancien ou épuisé.
-import { api } from "./api.js";
+import { loadHistory } from "./history.js";
 import { icon } from "./icons.js";
 import { formatDuration } from "./format.js";
 
@@ -25,17 +25,8 @@ const WINDOWS = [
   { days: 365, label: "365 jours" },
 ];
 
-async function fetchHistory() {
-  let all = [];
-  for (let p = 0; p < MAX_PAGES; p++) {
-    const page = await api(`/api/workouts?limit=${HISTORY_PAGE}&offset=${p * HISTORY_PAGE}`);
-    if (!Array.isArray(page) || !page.length) break;
-    all = all.concat(page);
-    if (page.length < HISTORY_PAGE) break; // dernière page
-    const oldest = Math.min(...all.map((w) => new Date(w.startTime).getTime()));
-    if (Number.isFinite(oldest) && (Date.now() - oldest) / 86400000 >= TARGET_DAYS) break;
-  }
-  return all;
+function fetchHistory() {
+  return loadHistory({ minDays: TARGET_DAYS, maxPages: MAX_PAGES });
 }
 
 // Somme durée / distance / dénivelé des séances dont l'horodatage tombe dans
@@ -87,7 +78,7 @@ function deltaHtml(cur, prev, comparable) {
   // Sous 1 %, on parle de stabilité plutôt que d'un « +0 % » trompeur.
   if (rounded === 0) return `<span class="vol-delta vol-delta-flat">stable</span>`;
   const cls = rounded > 0 ? "vol-delta-up" : "vol-delta-down";
-  return `<span class="vol-delta ${cls}">${rounded > 0 ? "+" : "−"}${Math.abs(rounded)} %</span>`;
+  return `<span class="vol-delta ${cls}">${rounded > 0 ? "▲ +" : "▼ −"}${Math.abs(rounded)} %</span>`;
 }
 
 function formatAscent(meters) {

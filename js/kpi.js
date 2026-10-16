@@ -19,6 +19,7 @@ const STORAGE_KEY = "suunto:kpi-selection";
 const data = {
   recovery: null,   // dernier échantillon de récupération ({ balance })
   sleepNight: null, // entryData de la dernière nuit
+  activity: null,   // échantillons d'activité 24/7 (15 min), du plus ancien au plus récent
   workouts: null,   // séances récentes (les plus récentes en premier)
   error: null,      // message d'erreur de chargement bien-être, le cas échéant
 };
@@ -47,6 +48,22 @@ function monthDistance() {
   return data.workouts
     .filter((w) => new Date(w.startTime) >= start)
     .reduce((s, w) => s + (w.totalDistance || 0), 0);
+}
+
+// Cumul du jour (minuit local) des échantillons d'activité 24/7.
+function todayActivity() {
+  if (!data.activity) return null;
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return data.activity
+    .filter((e) => new Date(e.timestamp) >= start)
+    .reduce(
+      (acc, e) => ({
+        steps: acc.steps + (e.entryData?.stepCount || 0),
+        kcal: acc.kcal + (e.entryData?.energyConsumption || 0) / 4184, // joules → kcal
+      }),
+      { steps: 0, kcal: 0 }
+    );
 }
 
 // Meilleure prédiction 10 km parmi les courses récentes (formule de Riegel).
@@ -112,6 +129,32 @@ const CATALOG = [
     id: "hrv", label: "VFC (nuit)", icon: "pulse",
     accent: "var(--accent-sky)", defaultOn: false,
     value: () => (data.sleepNight?.avgHrv != null ? Math.round(data.sleepNight.avgHrv) + " ms" : null),
+  },
+  {
+    id: "deepSleep", label: "Sommeil profond", icon: "moon",
+    accent: "var(--accent-sky)", defaultOn: false,
+    value: () => (data.sleepNight?.deepSleepDuration != null ? formatDuration(data.sleepNight.deepSleepDuration) : null),
+  },
+  {
+    id: "remSleep", label: "Sommeil paradoxal (REM)", icon: "sparkles",
+    accent: "var(--accent-gold)", defaultOn: false,
+    value: () => (data.sleepNight?.remSleepDuration != null ? formatDuration(data.sleepNight.remSleepDuration) : null),
+  },
+  {
+    id: "steps", label: "Pas (aujourd'hui)", icon: "activity",
+    accent: "var(--signal)", defaultOn: false,
+    value: () => {
+      const a = todayActivity();
+      return a ? Math.round(a.steps).toLocaleString("fr-FR") : null;
+    },
+  },
+  {
+    id: "energy", label: "Énergie (aujourd'hui)", icon: "zap",
+    accent: "var(--danger)", defaultOn: false,
+    value: () => {
+      const a = todayActivity();
+      return a ? Math.round(a.kcal).toLocaleString("fr-FR") + " kcal" : null;
+    },
   },
   {
     id: "racePrediction", label: "Prédiction 10 km", icon: "target",

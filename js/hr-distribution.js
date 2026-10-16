@@ -9,7 +9,7 @@
 // profond pour une dizaine de semaines), puis dérive le temps par zone de
 // chaque séance via le socle training-load — même cascade que le détail de
 // séance : échantillons FC → timeInZone de la montre → estimation gaussienne.
-import { api } from "./api.js";
+import { loadHistory } from "./history.js";
 import { icon } from "./icons.js";
 import { formatDuration } from "./format.js";
 import { zoneTimesFor, resolveMaxHr } from "./training-load.js";
@@ -25,19 +25,8 @@ const MAX_WEEKS = 12;      // nombre de semaines affichées
 const HR_ZONE_COLORS = ["#4fa3c9", "#49c6b5", "#e8c547", "#ff9c4a", "#e5484d"];
 const HR_ZONE_NAMES = ["Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5"];
 
-// Charge suffisamment de pages pour couvrir TARGET_DAYS, sans dépasser le
-// garde-fou. S'arrête tôt dès que l'historique est assez profond ou épuisé.
-async function fetchHistory() {
-  let all = [];
-  for (let p = 0; p < MAX_PAGES; p++) {
-    const page = await api(`/api/workouts?limit=${HISTORY_PAGE}&offset=${p * HISTORY_PAGE}`);
-    if (!Array.isArray(page) || !page.length) break;
-    all = all.concat(page);
-    if (page.length < HISTORY_PAGE) break; // dernière page
-    const oldest = Math.min(...all.map((w) => new Date(w.startTime).getTime()));
-    if (Number.isFinite(oldest) && (Date.now() - oldest) / 86400000 >= TARGET_DAYS) break;
-  }
-  return all;
+function fetchHistory() {
+  return loadHistory({ minDays: TARGET_DAYS, maxPages: MAX_PAGES });
 }
 
 // Lundi 00:00 (heure locale) de la semaine contenant `d` — les semaines
@@ -137,7 +126,7 @@ function renderStackedBars(container, weeks) {
       const y = baseY - (v / axisMax) * plotH;
       return `
       <line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${width - padRight}" y2="${y.toFixed(1)}" stroke="var(--panel-line)" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${yLabels[i]}</text>`;
+      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" class="chart-tick">${yLabels[i]}</text>`;
     })
     .join("");
 
@@ -168,7 +157,7 @@ function renderStackedBars(container, weeks) {
     .map((w, i) => {
       if (i % labelEvery !== 0 && i !== weeks.length - 1) return "";
       const cx = padLeft + step * (i + 0.5);
-      return `<text x="${cx.toFixed(1)}" y="${(height - 8).toFixed(1)}" text-anchor="middle" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${w.label}</text>`;
+      return `<text x="${cx.toFixed(1)}" y="${(height - 8).toFixed(1)}" text-anchor="middle" class="chart-tick">${w.label}</text>`;
     })
     .join("");
 

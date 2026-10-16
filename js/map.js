@@ -88,7 +88,9 @@ async function colorRouteByElevation(map, initialLine, points) {
     if (map.hasLayer(initialLine)) map.removeLayer(initialLine);
     L.hotline(hotlineData, {
       min, max,
-      palette: { 0.0: "#4fd1c0", 0.5: "#e8c547", 1.0: "#ff6a3d" },
+      // Dégradé bleu → magenta → rouge : très saturé, donc bien
+      // lisible sur le fond de carte clair (et sur son inversion sombre).
+      palette: { 0.0: "#2563eb", 0.5: "#d946ef", 1.0: "#f43f5e" },
       weight: 4,
       outlineWidth: 0,
     }).addTo(map);
@@ -105,11 +107,11 @@ export function buildRouteMap(containerId, points) {
     state.currentTileLayer = addTileLayer(map, state.currentTheme);
 
     const latLngs = points; // déjà au format [lat, lng]
-    const initialLine = L.polyline(latLngs, { color: "#49c6b5", weight: 3.5 }).addTo(map);
+    const initialLine = L.polyline(latLngs, { color: "#7c3aed", weight: 3.5 }).addTo(map);
     map.fitBounds(initialLine.getBounds(), { padding: [24, 24] });
 
-    L.circleMarker(latLngs[0], { radius: 6, color: "#49c6b5", fillColor: "#49c6b5", fillOpacity: 1 }).addTo(map);
-    L.circleMarker(latLngs[latLngs.length - 1], { radius: 6, color: "#ff6a3d", fillColor: "#ff6a3d", fillOpacity: 1 }).addTo(map);
+    L.circleMarker(latLngs[0], { radius: 6, color: "#2563eb", fillColor: "#2563eb", fillOpacity: 1 }).addTo(map);
+    L.circleMarker(latLngs[latLngs.length - 1], { radius: 6, color: "#f43f5e", fillColor: "#f43f5e", fillOpacity: 1 }).addTo(map);
 
     // Amélioration progressive : une fois l'altitude récupérée pour
     // chaque point, on remplace le trait uni par un tracé coloré du

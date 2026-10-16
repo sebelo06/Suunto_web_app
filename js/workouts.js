@@ -9,6 +9,7 @@ import { openWorkoutDetail } from "./workout-detail.js";
 import { recenterEditorMap } from "./route-editor.js";
 import { updateReadinessWorkouts } from "./readiness.js";
 import { updateKpiData } from "./kpi.js";
+import { loadHistory } from "./history.js";
 
 const workoutList = document.getElementById("workout-list");
 const workoutLoadMoreBtn = document.getElementById("workout-load-more");
@@ -36,12 +37,18 @@ function renderTrendChart(workouts) {
 // pied la plus "performante" parmi les séances récentes (celle qui
 // prédit le 10 km le plus rapide) comme référence, puis on en déduit
 // les autres distances.
+const PREDICT_WINDOW_DAYS = 90; // « forme actuelle » : on ignore les courses plus anciennes
+const HEATMAP_DAYS = 14 * 7 + 7; // 14 semaines + la semaine partielle de départ
+
 function renderRacePredictor(workouts) {
   const card = document.getElementById("predict-card");
   const hint = document.getElementById("predict-hint");
   if (!card) return;
 
-  const runs = workouts.filter((w) => w.activityId === 1 && w.totalDistance > 1000 && w.totalTime > 0);
+  const since = Date.now() - PREDICT_WINDOW_DAYS * 86400000;
+  const runs = workouts.filter(
+    (w) => w.activityId === 1 && w.totalDistance > 1000 && w.totalTime > 0 && new Date(w.startTime).getTime() >= since
+  );
   if (!runs.length) {
     card.innerHTML = `<div class="empty"><span class="empty-icon">${icon("activity", 28)}</span>Pas assez de courses à pied récentes pour prédire un temps.</div>`;
     if (hint) hint.textContent = "";
@@ -127,7 +134,8 @@ function renderCalendarHeatmap(workouts) {
       w
         .map((c) => {
           const dateLabel = c.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
-          return `<div class="heatmap-cell level-${c.level}" data-date="${dateLabel}" data-val="${c.val ? formatDistance(c.val) : ""}"></div>`;
+          const valLabel = c.val ? formatDistance(c.val) : "";
+          return `<div class="heatmap-cell level-${c.level}" role="img" tabindex="-1" aria-label="${dateLabel} : ${valLabel || "aucune séance"}" data-date="${dateLabel}" data-val="${valLabel}"></div>`;
         })
         .join("")
     )
@@ -137,7 +145,7 @@ function renderCalendarHeatmap(workouts) {
   const daysHtml = dayLabels.map((d) => `<span>${d}</span>`).join("");
 
   container.innerHTML = `
-    <div class="heatmap-wrap">
+    <div class="heatmap-wrap" role="group" aria-label="Régularité : distance par jour, flèches pour parcourir">
       <div class="heatmap-days">${daysHtml}</div>
       <div class="heatmap-main">
         <div class="heatmap-months">${monthsHtml}</div>
@@ -159,18 +167,42 @@ function renderCalendarHeatmap(workouts) {
 
   const tooltip = document.getElementById("heatmap-tooltip");
   const wrap = container.querySelector(".heatmap-wrap");
-  wrap.addEventListener("mouseover", (e) => {
-    const cell = e.target.closest(".heatmap-cell");
-    if (!cell) return;
+  const showTip = (cell) => {
     tooltip.textContent = cell.dataset.val ? `${cell.dataset.date} · ${cell.dataset.val}` : cell.dataset.date;
     const rect = cell.getBoundingClientRect();
     const wrapRect = wrap.getBoundingClientRect();
     tooltip.style.left = `${rect.left - wrapRect.left + rect.width / 2}px`;
     tooltip.style.top = `${rect.top - wrapRect.top}px`;
     tooltip.style.display = "block";
+  };
+  wrap.addEventListener("mouseover", (e) => {
+    const cell = e.target.closest(".heatmap-cell");
+    if (cell) showTip(cell);
   });
   wrap.addEventListener("mouseout", (e) => {
     if (!e.relatedTarget || !wrap.contains(e.relatedTarget)) tooltip.style.display = "none";
+  });
+
+  // Clavier : un seul arrêt de tabulation (« tabindex itinérant »), flèches
+  // ←/→ = semaine précédente/suivante, ↑/↓ = jour précédent/suivant.
+  const cells = [...container.querySelectorAll(".heatmap-grid .heatmap-cell")];
+  if (cells.length) cells[cells.length - 1].tabIndex = 0;
+  const move = (from, to) => {
+    const next = cells[Math.max(0, Math.min(cells.length - 1, to))];
+    from.tabIndex = -1;
+    next.tabIndex = 0;
+    next.focus();
+  };
+  wrap.addEventListener("focusin", (e) => { if (e.target.classList?.contains("heatmap-cell")) showTip(e.target); });
+  wrap.addEventListener("focusout", () => { tooltip.style.display = "none"; });
+  wrap.addEventListener("keydown", (e) => {
+    const cell = e.target.closest?.(".heatmap-grid .heatmap-cell");
+    if (!cell) return;
+    const i = cells.indexOf(cell);
+    const step = { ArrowLeft: -7, ArrowRight: 7, ArrowUp: -1, ArrowDown: 1 }[e.key];
+    if (step == null) return;
+    e.preventDefault();
+    move(cell, i + step);
   });
 }
 
@@ -217,9 +249,18 @@ export async function loadWorkouts() {
     latestWorkouts = workouts;
     updateKpiData({ workouts });
     renderTrendChart(workouts);
+    // Première peinture avec la page déjà chargée, puis affinage avec l'historique
+    // complet (sinon calendrier et prédiction ne verraient que les 20 dernières séances).
     renderRacePredictor(workouts);
     renderCalendarHeatmap(workouts);
     updateReadinessWorkouts(workouts);
+    loadHistory({ minDays: HEATMAP_DAYS })
+      .then((history) => {
+        renderRacePredictor(history);
+        renderCalendarHeatmap(history);
+        updateReadinessWorkouts(history);
+      })
+      .catch(() => { /* on garde le rendu provisoire */ });
 
     if (!workouts.length) {
       workoutList.innerHTML = `<div class="empty"><span class="empty-icon">${icon("mountain", 28)}</span>Aucune séance trouvée.<br>Va enregistrer une sortie avec ta montre !</div>`;
@@ -254,9 +295,6 @@ export async function loadMoreWorkouts() {
     latestWorkouts = (latestWorkouts || []).concat(more);
     updateKpiData({ workouts: latestWorkouts });
     renderTrendChart(latestWorkouts);
-    renderRacePredictor(latestWorkouts);
-    renderCalendarHeatmap(latestWorkouts);
-    updateReadinessWorkouts(latestWorkouts);
     renderWorkoutList();
   } catch {
     workoutsHasMore = true;

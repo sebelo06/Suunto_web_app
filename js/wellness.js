@@ -21,9 +21,12 @@ function renderSleepTrend(nights) {
 
 export async function loadWellness() {
   try {
-    const [sleep, recovery] = await Promise.all([
+    // Fenêtre de 2 jours : suffit pour le cumul « aujourd'hui », même autour de minuit.
+    const activitySince = Date.now() - 2 * 86400000;
+    const [sleep, recovery, activity] = await Promise.all([
       api("/api/wellness/sleep").catch(() => []),
       api("/api/wellness/recovery").catch(() => []),
+      api(`/api/wellness/activity?since=${activitySince}`).catch(() => null),
     ]);
 
     // Les entrées de sommeil "réelles" (pas les siestes) triées par
@@ -47,7 +50,7 @@ export async function loadWellness() {
       sleepQuality: lastNight?.quality ?? null,
     });
 
-    updateKpiData({ recovery: lastRecovery ?? null, sleepNight: lastNight ?? null });
+    updateKpiData({ recovery: lastRecovery ?? null, sleepNight: lastNight ?? null, activity: Array.isArray(activity) ? activity : null });
   } catch (err) {
     updateKpiData({ error: err.message });
   }
