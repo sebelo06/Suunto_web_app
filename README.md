@@ -29,6 +29,20 @@ Une fenêtre native s'ouvre. Au premier lancement, connecte-toi avec ton
 email / mot de passe Suunto. La connexion est ensuite **mémorisée de façon
 chiffrée** (voir ci-dessous) : les fois suivantes, l'app rouvre déjà connectée.
 
+## Mode démo (sans compte Suunto)
+
+Pour explorer l'app avec des **données fictives** (≈ 8 mois de séances, sommeil,
+récupération, tracés GPS, courbes FC), sans connexion :
+
+```bash
+npm run desktop:demo   # fenêtre Electron
+npm run start:demo     # backend seul (avec dev.sh front pour le front)
+```
+
+Le backend remplace alors l'API Suunto par `src/demo/` (données générées de façon
+déterministe, relatives à la date du jour) et saute l'écran de connexion. Rien
+n'est écrit dans le Keychain. Le mode normal est inchangé.
+
 ## Créer un installeur
 
 Le packaging est géré par [electron-builder](https://www.electron.build/). Les

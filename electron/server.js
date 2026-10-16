@@ -20,7 +20,10 @@ const ROOT = path.join(__dirname, "..");
 function startServer() {
   // Active la persistance de session chiffrée (mode desktop uniquement).
   // Le web ne branche jamais d'adaptateur -> comportement inchangé.
-  require("../src/stores/sessionPersistence").use(require("./persistence"));
+  // Désactivée en mode démo : rien de fictif ne doit être écrit dans le Keychain.
+  if (!require("../src/config").DEMO) {
+    require("../src/stores/sessionPersistence").use(require("./persistence"));
+  }
 
   // On réutilise l'app Express telle quelle : middlewares, session, routes /api.
   const app = require("../src/app");
