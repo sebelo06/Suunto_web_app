@@ -7,6 +7,7 @@ import { formatDuration, formatDistance, formatPace } from "./format.js";
 import { decodePolyline, buildRouteMap } from "./map.js";
 import { renderHrChart } from "./charts.js";
 import { buildSpeedSamples, computeDecoupling, renderDecouplingCard } from "./decoupling.js";
+import { computeSplits, renderSplitsCard } from "./splits.js";
 import { setDashGreeting, resetDashGreeting } from "./dash-greeting.js";
 import {
   DEFAULT_HR_ZONE_THRESHOLDS,
@@ -211,10 +212,12 @@ export async function renderWorkoutDetailInto(container, username, key, onClose)
         </div>
         <div id="hr-chart"></div>
       </div>` : ""}
+      <div id="splits-container"></div>
       <div id="decoupling-container"></div>
       <div id="hr-zones-container">${buildHrZonesHtml(w)}</div>
     `;
 
+    renderSplitsCard(container.querySelector("#splits-container"), computeSplits(workoutData?.locations || [], hrSamples, w.totalDistance), { activityId: w.activityId });
     if (decoupling) renderDecouplingCard(container.querySelector("#decoupling-container"), decoupling);
     if (points.length) buildRouteMap(mapId, points);
     if (hrSamples.length >= 2) {

@@ -12,6 +12,7 @@ const config = require("./config");
 const authRoutes = require("./routes/auth");
 const workoutsRoutes = require("./routes/workouts");
 const wellnessRoutes = require("./routes/wellness");
+const guidesRoutes = require("./routes/guides");
 const routeRoutes = require("./routes/route");
 
 const app = express();
@@ -69,6 +70,7 @@ if (config.DEMO) {
 app.use("/api", authRoutes);
 app.use("/api/workouts", workoutsRoutes);
 app.use("/api/wellness", wellnessRoutes);
+app.use("/api/guides", guidesRoutes);
 app.use("/api/route", routeRoutes);
 
 module.exports = app;

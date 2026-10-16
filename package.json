@@ -10,6 +10,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "desktop": "electron .",
+    "test": "node --test test/planner.test.mjs",
     "desktop:demo": "SUUNTO_DEMO=1 electron .",
     "start:demo": "SUUNTO_DEMO=1 node server.js",
     "pack": "electron-builder --dir",
