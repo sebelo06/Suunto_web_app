@@ -23,7 +23,10 @@ const FRONTEND_ORIGINS = process.env.FRONTEND_ORIGIN
   ? process.env.FRONTEND_ORIGIN.split(",").map((o) => o.trim())
   : DEFAULT_FRONTEND_ORIGINS;
 
+const DEMO = ["1", "true"].includes(String(process.env.SUUNTO_DEMO || "").toLowerCase());
+
 module.exports = {
+  DEMO,
   NODE_ENV,
   isProduction,
   PORT: process.env.PORT || 3000,

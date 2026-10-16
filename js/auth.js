@@ -7,6 +7,7 @@ import { loadHrDistribution } from "./hr-distribution.js";
 import { loadWellness } from "./wellness.js";
 import { loadEvolutionData } from "./evolution.js";
 import { resetDashGreeting } from "./dash-greeting.js";
+import { resetHistory } from "./history.js";
 
 const loginView = document.getElementById("login-view");
 const dashboardView = document.getElementById("dashboard-view");
@@ -23,6 +24,7 @@ export function showDashboard() {
   dashboardView.style.display = "block";
   logoutBtn.style.display = "inline-block";
   resetDashGreeting();
+  resetHistory();
   document.getElementById("tab-tracking")?.classList.add("enter");
   loadWorkouts();
   loadVolume();

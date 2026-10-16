@@ -8,7 +8,7 @@
 // PROPRE chargement d'historique, assez profond pour une charge chronique
 // fiable (28 j + marge), puis dérive la série quotidienne continue via le socle
 // training-load.
-import { api } from "./api.js";
+import { loadHistory } from "./history.js";
 import { icon } from "./icons.js";
 import { renderLineChart } from "./charts.js";
 import { buildDailyLoad, computeAcwr, acwrTrend, ACWR_CHRONIC_DAYS } from "./training-load.js";
@@ -34,19 +34,8 @@ const STATUS_COLOR = {
   none: "var(--muted)",
 };
 
-// Charge suffisamment de pages pour couvrir TARGET_DAYS, sans dépasser le
-// garde-fou. S'arrête tôt dès que l'historique est assez profond ou épuisé.
-async function fetchHistory() {
-  let all = [];
-  for (let p = 0; p < MAX_PAGES; p++) {
-    const page = await api(`/api/workouts?limit=${HISTORY_PAGE}&offset=${p * HISTORY_PAGE}`);
-    if (!Array.isArray(page) || !page.length) break;
-    all = all.concat(page);
-    if (page.length < HISTORY_PAGE) break; // dernière page
-    const oldest = Math.min(...all.map((w) => new Date(w.startTime).getTime()));
-    if (Number.isFinite(oldest) && (Date.now() - oldest) / 86400000 >= TARGET_DAYS) break;
-  }
-  return all;
+function fetchHistory() {
+  return loadHistory({ minDays: TARGET_DAYS, maxPages: MAX_PAGES });
 }
 
 // Bande horizontale des zones (ratio 0,5 → 2,0) avec un curseur sur la valeur.

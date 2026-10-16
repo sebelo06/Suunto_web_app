@@ -29,6 +29,20 @@ Une fenêtre native s'ouvre. Au premier lancement, connecte-toi avec ton
 email / mot de passe Suunto. La connexion est ensuite **mémorisée de façon
 chiffrée** (voir ci-dessous) : les fois suivantes, l'app rouvre déjà connectée.
 
+## Mode démo (sans compte Suunto)
+
+Pour explorer l'app avec des **données fictives** (≈ 8 mois de séances, sommeil,
+récupération, tracés GPS, courbes FC), sans connexion :
+
+```bash
+npm run desktop:demo   # fenêtre Electron
+npm run start:demo     # backend seul (avec dev.sh front pour le front)
+```
+
+Le backend remplace alors l'API Suunto par `src/demo/` (données générées de façon
+déterministe, relatives à la date du jour) et saute l'écran de connexion. Rien
+n'est écrit dans le Keychain. Le mode normal est inchangé.
+
 ## Créer un installeur
 
 Le packaging est géré par [electron-builder](https://www.electron.build/). Les
@@ -84,8 +98,9 @@ src/
     clientStore.js         Store mémoire des sessions Suunto (get/set/delete)
     sessionPersistence.js  Seam de persistance (no-op par défaut, branché en desktop)
   middleware/auth.js   Garde-fous requireSuuntoClient / requireSession
-  routes/              Un fichier par groupe d'endpoints (auth, workouts, wellness, route)
+  routes/              Un fichier par groupe d'endpoints (auth, workouts, wellness, guides, route)
   utils/unwrap.js      Normalisation des réponses API Suunto
+  demo/                Données fictives du mode démo (SUUNTO_DEMO=1)
 
 index.html             Squelette de la page (charge css/styles.css et js/main.js)
 css/styles.css         Tous les styles
@@ -112,6 +127,9 @@ est géré automatiquement en same-origin) :
 | GET     | `/api/workouts?limit=20` | Dernières séances                           |
 | GET     | `/api/wellness/sleep`    | Données de sommeil                          |
 | GET     | `/api/wellness/recovery` | Récupération / stress                       |
+| GET     | `/api/wellness/activity` | Activité 24/7 (pas, énergie) ; `?since=<ms>`, 7 jours par défaut |
+| GET     | `/api/wellness/sleepstages` | Phases de sommeil ; `?since=<ms>`        |
+| POST    | `/api/guides`            | `{ guide, icon, guideId? }` → crée ou remplace un Guide SuuntoPlus sur le compte |
 | POST    | `/api/route/snap`        | `{ points: [{lat,lng}], activityType }` → aligne l'itinéraire sur les chemins (BRouter) |
 
 ### Snap-to-road
@@ -122,6 +140,16 @@ profil de routage est choisi selon `activityType` (randonnée, marche, trail,
 vélo route, VTT), et l'altitude et le dénivelé (D+) sont renvoyés dans la même
 réponse — l'export GPX n'a donc pas besoin d'un service d'altitude séparé.
 
+### Planifier une séance
+
+L'onglet **Planifier** permet de construire une séance (échauffement,
+répétitions, cibles de FC par zone), de voir son effet estimé sur la charge
+(ACWR) et de l'envoyer sur la montre sous forme de **Guide SuuntoPlus**
+(`POST /api/guides`, synchronisé via l'app mobile). Il propose aussi un modèle
+adapté à ta forme du jour, et exporte le guide en `.zip` ou en texte.
+La logique pure (modèles, validation, génération du guide, ZIP) est dans
+`js/workout-plan.js` et `js/guide-export.js`, testée sans navigateur.
+
 ## Fond de carte
 
 Les cartes utilisent les tuiles OpenStreetMap (sans clé). Le mode sombre est
@@ -131,6 +159,7 @@ obtenu par un filtre CSS appliqué aux tuiles.
 
 - `npm run dev` — lance le backend seul en watch (`node --watch server.js`) sur
   `http://localhost:3000`, utile pour itérer sur l'API sans relancer Electron.
+- `npm test` — lance les tests unitaires du planificateur (`test/`, `node --test`).
 - Le frontend n'a pas d'étape de build : édite `js/`, `css/`, `index.html` et
   recharge la fenêtre (`Cmd/Ctrl+R`).
 - Posture de sécurité de la fenêtre : `nodeIntegration: false` et

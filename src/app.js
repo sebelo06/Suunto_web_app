@@ -12,6 +12,7 @@ const config = require("./config");
 const authRoutes = require("./routes/auth");
 const workoutsRoutes = require("./routes/workouts");
 const wellnessRoutes = require("./routes/wellness");
+const guidesRoutes = require("./routes/guides");
 const routeRoutes = require("./routes/route");
 
 const app = express();
@@ -59,9 +60,17 @@ app.use(
   })
 );
 
+// Mode démo (SUUNTO_DEMO=1) : fausses données, sans compte Suunto. Monté avant
+// les vraies routes pour les court-circuiter ; le reste (ex. snap) retombe dessus.
+if (config.DEMO) {
+  console.log("[demo] Mode démo actif : données fictives, aucune connexion Suunto.");
+  app.use("/api", require("./demo/routes"));
+}
+
 app.use("/api", authRoutes);
 app.use("/api/workouts", workoutsRoutes);
 app.use("/api/wellness", wellnessRoutes);
+app.use("/api/guides", guidesRoutes);
 app.use("/api/route", routeRoutes);
 
 module.exports = app;

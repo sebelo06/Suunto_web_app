@@ -12,7 +12,7 @@
 // signaux manquants (repondération sur ceux présents).
 import { icon, ACTIVITY_NAMES } from "./icons.js";
 import { formatDuration } from "./format.js";
-import { computeTrimp, resolveMaxHr } from "./training-load.js";
+import { buildDailyLoad, computeAcwr } from "./training-load.js";
 import { infoPop, wireInfoPops } from "./info-pop.js";
 
 const READINESS_INFO = infoPop(
@@ -25,12 +25,19 @@ let recoveryBalance = null; // 0..1
 let sleepDuration = null; // secondes
 let sleepQuality = null; // 0..1
 let workouts = null;
+let lastSnapshot = null; // dernier score calculé, lu par l'onglet Planifier
 let wellnessReceived = false;
 let workoutsReceived = false;
 
 const card = document.getElementById("readiness-card");
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// Dernier score de « Forme du jour » ({ score, penalized }) ou null tant que rien
+// n'a été calculé. `penalized` : le score porte encore le malus post-séance.
+export function getReadinessSnapshot() {
+  return lastSnapshot;
+}
 
 export function updateReadinessWellness({ recovery = null, sleepDuration: dur = null, sleepQuality: qual = null } = {}) {
   recoveryBalance = recovery;
@@ -55,34 +62,15 @@ function sleepScoreFrom(dur, qual) {
   return durScore != null ? durScore : qualScore;
 }
 
-// Charge : ratio charge aiguë (7 j) / charge chronique hebdomadaire
-// moyenne. La charge par séance est le TRIMP par zone (dose pondérée par
-// l'intensité, socle training-load) ; le score étant un ratio, il est
-// invariant d'échelle — passer du proxy durée×FC au vrai TRIMP ne change pas
-// le calibrage. Frais ou équilibré → prêt (score haut) ; surcharge → fatigue.
+// Charge : on réutilise l'ACWR de la carte « Charge & risque » (charge aiguë
+// 7 j / chronique 28 j sur la série quotidienne continue) pour que les deux
+// widgets ne puissent pas se contredire. Le score est une FRAÎCHEUR : élevé tant
+// que la charge récente ne dépasse pas la base chronique, il chute au-delà de
+// ratio 1 (surcharge → fatigue). Une sous-charge n'est pas pénalisée ici.
 function loadScoreFrom(list) {
   if (!list || !list.length) return { score: null, ratio: null };
-  const now = Date.now();
-  const DAY = 86400000;
-  const { maxHr } = resolveMaxHr(list); // FCmax fiabilisée du corpus
-  let acute = 0;
-  let total = 0;
-  let oldest = now;
-  list.forEach((w) => {
-    const t = new Date(w.startTime).getTime();
-    if (Number.isNaN(t)) return;
-    // TRIMP par zone ; repli sur la durée seule si aucune donnée FC, pour ne
-    // pas ignorer purement et simplement la séance.
-    const trimp = computeTrimp(w, { maxHr }).value;
-    const unit = trimp > 0 ? trimp : (w.totalTime || 0) / 60;
-    total += unit;
-    if ((now - t) / DAY <= 7) acute += unit;
-    if (t < oldest) oldest = t;
-  });
-  const spanWeeks = Math.max((now - oldest) / DAY / 7, 1);
-  const chronicWeekly = total / spanWeeks;
-  if (chronicWeekly <= 0) return { score: null, ratio: null };
-  const ratio = acute / chronicWeekly;
+  const { ratio } = computeAcwr(buildDailyLoad(list).series);
+  if (ratio == null) return { score: null, ratio: null };
   return { score: clamp(100 - Math.max(0, ratio - 1) * 55, 0, 100), ratio };
 }
 
@@ -143,7 +131,7 @@ function render() {
   const comps = [
     { label: "Récupération", score: recScore, weight: 0.45 },
     { label: "Sommeil", score: slpScore, weight: 0.35 },
-    { label: "Charge", score: ldScore, weight: 0.2 },
+    { label: "Fraîcheur", score: ldScore, weight: 0.2 },
   ];
   const present = comps.filter((c) => c.score != null);
 
@@ -161,6 +149,7 @@ function render() {
   // Malus post-séance (option B) appliqué avant le calcul de l'état, pour
   // que la couleur et l'étiquette reflètent la fatigue immédiate.
   const score = Math.round(clamp(baseScore - (effort ? effort.penalty : 0), 0, 100));
+  lastSnapshot = { score, penalized: Boolean(effort) };
 
   let level;
   let accent;

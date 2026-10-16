@@ -314,21 +314,30 @@ export function renderEvolution() {
   const tbody = table.querySelector("tbody");
   thead.innerHTML = `<tr><th>Période</th>${evoMetrics.map((k) => `<th>${EVO_METRICS[k].label}</th>`).join("")}</tr>`;
 
+  const now = Date.now();
   const rowsHtml = periodsDesc
     .map((p, idx) => {
       const older = periodsDesc[idx + 1];
+      // Période en cours : on la compare aux MÊMES jours écoulés de la précédente
+      // (et pas à la période entière), sinon un lundi soir affiche « ▼ 100 % ».
+      const isCurrent = idx === 0;
+      let olderItems = older ? older.items : null;
+      if (isCurrent && older) {
+        const elapsed = now - p.start.getTime();
+        olderItems = older.items.filter((w) => new Date(w.startTime).getTime() - older.start.getTime() < elapsed);
+      }
       const cells = evoMetrics
         .map((k) => {
           const m = EVO_METRICS[k];
           const val = m.compute(p.items);
-          const olderVal = older ? m.compute(older.items) : null;
+          const olderVal = olderItems ? m.compute(olderItems) : null;
           let delta = "";
-          if (val != null && olderVal != null && olderVal !== 0) {
+          if (val != null && olderVal != null && olderVal !== 0 && !(isCurrent && !p.items.length)) {
             const pct = ((val - olderVal) / olderVal) * 100;
             if (Math.abs(pct) >= 1) {
               const up = pct > 0;
               const positive = m.higherIsBetter ? up : !up;
-              delta = `<span class="evo-delta ${positive ? "up" : "down"}">${up ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}%</span>`;
+              delta = `<span class="evo-delta ${positive ? "up" : "down"}"${isCurrent ? ' title="Comparé aux mêmes jours de la période précédente"' : ""}>${up ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}%</span>`;
             }
           }
           return `<td>${val == null ? "—" : m.format(val)}${delta}</td>`;

@@ -70,7 +70,7 @@ export function renderHrChart(container, samples, { color }) {
     .map(
       (y, i) => `
       <line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${width - padRight}" y2="${y.toFixed(1)}" stroke="var(--panel-line)" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${yLabels[i]}</text>`
+      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" class="chart-tick">${yLabels[i]}</text>`
     )
     .join("");
 
@@ -78,7 +78,7 @@ export function renderHrChart(container, samples, { color }) {
   const nTicks = 4;
   const xticks = Array.from({ length: nTicks + 1 }, (_, i) => {
     const x = padLeft + (plotW * i) / nTicks;
-    return `<text x="${x.toFixed(1)}" y="${height - 6}" text-anchor="${i === 0 ? "start" : i === nTicks ? "end" : "middle"}" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${fmtT((tRange * i) / nTicks)}</text>`;
+    return `<text x="${x.toFixed(1)}" y="${height - 6}" text-anchor="${i === 0 ? "start" : i === nTicks ? "end" : "middle"}" class="chart-tick">${fmtT((tRange * i) / nTicks)}</text>`;
   }).join("");
 
   // Marqueur au pic de FC (repère utile sans surcharger la courbe de points).
@@ -87,7 +87,7 @@ export function renderHrChart(container, samples, { color }) {
   const peak = `<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="3.5" fill="${color}" stroke="var(--bg-elevated)" stroke-width="2"><title>Pic ${hrMax} bpm à ${fmtT(pts[maxIdx].t - tMin)}</title></circle>`;
 
   container.innerHTML = `
-    <svg class="trend-svg" style="height:${height}px;" viewBox="0 0 ${width} ${height}">
+    <svg class="trend-svg" style="height:${height}px;" viewBox="0 0 ${width} ${height}" role="img" aria-label="Fréquence cardiaque : minimum ${Math.round(hrMin)} bpm, maximum ${hrMax} bpm, pic à ${fmtT(pts[maxIdx].t - tMin)}">
       <defs>
         <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="${color}" stop-opacity="0.32" />
@@ -143,7 +143,7 @@ export function renderLineChart(container, items, { color, formatValue }) {
     .map(
       (y, i) => `
       <line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${width - padRight}" y2="${y.toFixed(1)}" stroke="var(--panel-line)" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" style="font-size:9.5px; font-family:var(--mono); fill:var(--muted);">${yLabels[i]}</text>`
+      <text x="${(padLeft - 8).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle" class="chart-tick">${yLabels[i]}</text>`
     )
     .join("");
 
@@ -158,7 +158,7 @@ export function renderLineChart(container, items, { color, formatValue }) {
   const labelEvery = Math.max(1, Math.ceil(items.length / maxXLabels));
 
   container.innerHTML = `
-    <svg class="trend-svg" viewBox="0 0 ${width} ${height}">
+    <svg class="trend-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Tendance sur ${items.length} points : de ${formatValue(items[0].value)} (${items[0].label}) à ${formatValue(items[items.length - 1].value)} (${items[items.length - 1].label}), minimum ${formatValue(min)}, maximum ${formatValue(max)}">
       <defs>
         <linearGradient id="${gradientId}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="${color}" stop-opacity="0.32" />

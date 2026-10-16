@@ -106,7 +106,7 @@ function refreshEditorUi() {
   if (editorPoints.length > 1) {
     editorPolyline = L.polyline(
       editorPoints.map((p) => [p.lat, p.lng]),
-      { color: "#ff5a2b", weight: 3.5, dashArray: snappedRoute ? "6 6" : null, opacity: snappedRoute ? 0.5 : 1 }
+      { color: "#7c3aed", weight: 3.5, dashArray: snappedRoute ? "6 6" : null, opacity: snappedRoute ? 0.5 : 1 }
     ).addTo(state.editorMap);
   }
   editorUndoBtn.disabled = editorPoints.length === 0;
@@ -118,7 +118,7 @@ function refreshEditorUi() {
 function addEditorPoint(lat, lng) {
   editorPoints.push({ lat, lng });
   const marker = L.circleMarker([lat, lng], {
-    radius: 5, color: "#ff5a2b", fillColor: "#ff5a2b", fillOpacity: 1,
+    radius: 5, color: "#7c3aed", fillColor: "#7c3aed", fillOpacity: 1,
   }).addTo(state.editorMap);
   editorMarkers.push(marker);
   clearSnappedRoute();
@@ -181,7 +181,7 @@ async function performSnap({ auto } = {}) {
     if (snappedPolyline) state.editorMap.removeLayer(snappedPolyline);
     snappedPolyline = L.polyline(
       snappedRoute.map((p) => [p.lat, p.lng]),
-      { color: "#49c6b5", weight: 4 }
+      { color: "#f43f5e", weight: 4 }
     ).addTo(state.editorMap);
     if (!auto) state.editorMap.fitBounds(snappedPolyline.getBounds(), { padding: [24, 24] });
 
@@ -382,7 +382,7 @@ function highlightElevation(index) {
   // Marqueur synchronisé sur la carte.
   if (!elevMapMarker) {
     elevMapMarker = L.circleMarker([p.lat, p.lng], {
-      radius: 6, color: "#fff", weight: 2, fillColor: "#49c6b5", fillOpacity: 1,
+      radius: 6, color: "#fff", weight: 2, fillColor: "#f43f5e", fillOpacity: 1,
       interactive: false, // ne pas intercepter les événements de survol de la carte
     }).addTo(state.editorMap);
   } else {

@@ -6,8 +6,9 @@ import { api } from "./api.js";
 import { initEvolutionTab, renderEvolution } from "./evolution.js";
 import { initRouteEditor } from "./route-editor.js";
 import { initOverviewMap } from "./overview-map.js";
+import { initPlanner } from "./planner.js";
 import { initCollapsibles } from "./collapse.js";
-import "./workout-detail.js"; // câble le tiroir de détail (backdrop, Échap)
+import { closeWorkoutDetail } from "./workout-detail.js"; // câble aussi le tiroir de détail (Échap)
 import "./workouts.js"; // câble le bouton "charger plus de séances"
 
 initTheme();
@@ -47,6 +48,7 @@ const tabPanels = {
   tracking: document.getElementById("tab-tracking"),
   sessions: document.getElementById("tab-sessions"),
   itinerary: document.getElementById("tab-itinerary"),
+  planner: document.getElementById("tab-planner"),
   overview: document.getElementById("tab-overview"),
 };
 
@@ -54,6 +56,9 @@ tabButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const tab = btn.dataset.tab;
     if (btn.classList.contains("active")) return;
+    // Quitter « Dernières séances » avec une séance ouverte : on la referme, sinon
+    // l'en-tête garderait le titre/la date de cette séance sur les autres onglets.
+    if (tabPanels.sessions.style.display !== "none") closeWorkoutDetail();
     tabButtons.forEach((b) => {
       const on = b === btn;
       b.classList.toggle("active", on);
@@ -73,6 +78,7 @@ tabButtons.forEach((btn) => {
       initRouteEditor();
       requestAnimationFrame(() => state.editorMap && state.editorMap.invalidateSize());
     }
+    if (tab === "planner") initPlanner();
     if (tab === "overview") {
       initOverviewMap();
       requestAnimationFrame(() => state.overviewMap && state.overviewMap.invalidateSize());
