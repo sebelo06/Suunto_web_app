@@ -1,6 +1,6 @@
 {
   "name": "suunto-tracker-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Application desktop de suivi Suunto (Electron) : backend Express embarqué + frontend statique",
   "main": "electron/main.js",
   "engines": {
