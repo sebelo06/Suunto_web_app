@@ -11,7 +11,30 @@ partagent la **même origine** (`http://localhost:<port>`, port choisi
 dynamiquement) — il n'y a donc ni CORS, ni configuration réseau, ni serveur
 distant à gérer. Tes identifiants Suunto ne quittent jamais ta machine.
 
-## Installation
+## Installation (utilisateurs)
+
+Télécharge l'installeur de ton système depuis la page
+[**Releases**](https://github.com/sebelo06/Suunto_web_app/releases/latest) :
+
+| Système | Fichier | Installation |
+| --- | --- | --- |
+| Windows | `Suivi-Suunto-Setup-x.y.z.exe` | Double-clic, puis suis l'assistant. |
+| macOS (Apple Silicon) | `Suivi-Suunto-x.y.z-arm64.dmg` | Ouvre le `.dmg`, glisse l'app dans *Applications*. |
+| Linux | `Suivi-Suunto-x.y.z.AppImage` | `chmod +x` le fichier, puis double-clic ou `./Suivi-Suunto-x.y.z.AppImage`. |
+
+L'app n'est pas signée, donc le système affiche un avertissement au premier
+lancement :
+
+- **Windows** : « Windows a protégé votre ordinateur » → *Informations
+  complémentaires* → *Exécuter quand même*.
+- **macOS** : clic droit sur l'app → *Ouvrir* → *Ouvrir*. Si macOS dit que
+  l'app est « endommagée », lance dans le Terminal :
+  `xattr -cr "/Applications/Suivi Suunto.app"`.
+
+Au premier lancement, connecte-toi avec ton compte Suunto (ou essaie le
+[mode démo](#mode-démo-sans-compte-suunto) depuis les sources).
+
+## Installation (développeurs)
 
 Prérequis : [Node.js](https://nodejs.org/) ≥ 18.
 
@@ -19,7 +42,7 @@ Prérequis : [Node.js](https://nodejs.org/) ≥ 18.
 npm install
 ```
 
-## Lancement
+## Lancement depuis les sources
 
 ```bash
 npm run desktop
