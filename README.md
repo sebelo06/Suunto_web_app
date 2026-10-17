@@ -68,6 +68,22 @@ npm run pack          # build "unpacked" (dossier .app, sans installeur — pour
   `images/`, `index.html`, `server.js`) plus les dépendances de production ;
   voir le champ `build.files` de `package.json`.
 
+### Publier une version (GitHub Releases)
+
+Le workflow `.github/workflows/release.yml` construit l'installeur Windows
+(`.exe`), macOS (`.dmg`) et Linux (`.AppImage`) sur GitHub Actions et les
+attache à une Release dès qu'un tag `v*` est poussé :
+
+```bash
+npm version patch        # 1.0.0 → 1.0.1 : commit + tag
+git push --follow-tags
+```
+
+Les installeurs apparaissent dans l'onglet *Releases* du dépôt. Les builds ne
+sont pas signés : Windows affiche SmartScreen (« Informations complémentaires →
+Exécuter quand même »), et macOS demande clic droit → « Ouvrir » (ou
+`xattr -cr "/Applications/Suivi Suunto.app"` si l'app est dite « endommagée »).
+
 ## Connexion et confidentialité
 
 - Le **mot de passe n'est jamais stocké**. Au login, il sert une seule fois à
