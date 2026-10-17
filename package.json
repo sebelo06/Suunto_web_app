@@ -59,6 +59,11 @@
     "linux": {
       "target": "AppImage",
       "category": "Utility"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "sebelo06",
+      "repo": "Suunto_web_app"
     }
   }
 }
